@@ -1,155 +1,64 @@
 /**
- * Audio playback queue + mic recording helpers for 2BOTS.
+ * Audio 2.0 — Simple: play one clip, await completion. No queue.
+ * The pipeline in page.tsx handles sequencing.
  */
 
-type QueueItem = {
-  speaker: string;
-  base64: string;
-  mimeType: string;
-  onStart?: () => void;  // fires when THIS clip starts playing
-};
-
-type AudioCallbacks = {
-  onPlayStart: (speaker: string) => void;
-  onPlayEnd: () => void;
-  onError: (msg: string) => void;
-};
-
-let queue: QueueItem[] = [];
-let playing = false;
 let currentAudio: HTMLAudioElement | null = null;
-let callbacks: AudioCallbacks | null = null;
+let currentResolve: (() => void) | null = null;
 
-export function initAudio(cb: AudioCallbacks) {
-  callbacks = cb;
-}
+/**
+ * Play a base64-encoded audio clip. Returns a promise that resolves
+ * when playback finishes (or when stopAudio() is called).
+ */
+export function playAudioBase64(base64: string, mime = 'audio/mpeg'): Promise<void> {
+  // Stop anything currently playing first
+  stopAudio();
 
-export function queueAudio(
-  speaker: string,
-  base64: string,
-  mimeType = 'audio/mpeg',
-  onStart?: () => void
-) {
-  queue.push({ speaker, base64, mimeType, onStart });
-  if (!playing) playNext();
-}
+  return new Promise((resolve) => {
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    currentAudio = audio;
+    currentResolve = resolve;
 
-function playNext() {
-  if (queue.length === 0) {
-    playing = false;
-    currentAudio = null;
-    callbacks?.onPlayEnd();
-    return;
-  }
+    const done = () => {
+      URL.revokeObjectURL(url);
+      if (currentAudio === audio) {
+        currentAudio = null;
+        currentResolve = null;
+      }
+      resolve();
+    };
 
-  playing = true;
-  const item = queue.shift()!;
-  callbacks?.onPlayStart(item.speaker);
-  item.onStart?.();  // reveal text for THIS specific clip
-
-  const audio = new Audio(`data:${item.mimeType};base64,${item.base64}`);
-  currentAudio = audio;
-
-  audio.addEventListener('ended', () => {
-    currentAudio = null;
-    playing = false;
-    playNext();
-  });
-
-  audio.addEventListener('error', () => {
-    currentAudio = null;
-    playing = false;
-    callbacks?.onError('Audio playback error');
-    playNext();
-  });
-
-  audio.play().catch(() => {
-    currentAudio = null;
-    playing = false;
-    callbacks?.onError('Autoplay blocked — interact with the page first');
-    document.addEventListener('click', () => playNext(), { once: true });
+    audio.onended = done;
+    audio.onerror = done;
+    audio.play().catch(() => {
+      // Autoplay blocked — resolve so pipeline continues
+      // (text still shows, just no audio)
+      done();
+    });
   });
 }
 
-export function stopAllAudio() {
-  queue = [];
+/**
+ * Immediately stop whatever is playing and resolve its promise.
+ */
+export function stopAudio(): void {
   if (currentAudio) {
     currentAudio.pause();
+    currentAudio.src = '';
     currentAudio = null;
   }
-  playing = false;
-}
-
-export function isAudioPlaying() {
-  return playing;
-}
-
-// ---- Mic recording ----
-
-let mediaRecorder: MediaRecorder | null = null;
-let chunks: Blob[] = [];
-let micStream: MediaStream | null = null;
-
-function getSupportedMime(): string {
-  const types = [
-    'audio/webm;codecs=opus',
-    'audio/webm',
-    'audio/ogg;codecs=opus',
-    'audio/mp4',
-  ];
-  for (const t of types) {
-    if (MediaRecorder.isTypeSupported(t)) return t;
-  }
-  return 'audio/webm';
-}
-
-/** Pre-request mic permission so the browser prompt appears early */
-export async function requestMicPermission(): Promise<boolean> {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    // Got permission — immediately stop the stream (we don't need it yet)
-    stream.getTracks().forEach(t => t.stop());
-    return true;
-  } catch {
-    return false;
+  if (currentResolve) {
+    currentResolve();
+    currentResolve = null;
   }
 }
 
-export async function startMicRecording(): Promise<void> {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  micStream = stream;
-  chunks = [];
-
-  mediaRecorder = new MediaRecorder(stream, { mimeType: getSupportedMime() });
-  mediaRecorder.addEventListener('dataavailable', (e) => {
-    if (e.data.size > 0) chunks.push(e.data);
-  });
-  mediaRecorder.start(1000);
-}
-
-export function stopMicRecording(): Promise<Blob | null> {
-  return new Promise((resolve) => {
-    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-      resolve(null);
-      return;
-    }
-
-    mediaRecorder.addEventListener('stop', () => {
-      micStream?.getTracks().forEach((t) => t.stop());
-      micStream = null;
-      if (chunks.length === 0) {
-        resolve(null);
-        return;
-      }
-      const blob = new Blob(chunks, { type: mediaRecorder!.mimeType });
-      chunks = [];
-      resolve(blob);
-    });
-
-    mediaRecorder.stop();
-  });
-}
-
-export function isMicRecording(): boolean {
-  return mediaRecorder?.state === 'recording';
+/**
+ * Returns true if audio is currently playing.
+ */
+export function isPlaying(): boolean {
+  return currentAudio !== null;
 }

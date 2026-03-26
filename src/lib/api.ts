@@ -17,9 +17,10 @@ export interface BotMessage {
 }
 
 export type SSEEvent =
-  | { type: 'session'; session_id: string }
+  | { type: 'session'; session_id: string; gpt_personality?: string; claude_personality?: string }
   | { type: 'text'; speaker: 'gpt' | 'claude'; text: string }
   | { type: 'audio'; speaker: 'gpt' | 'claude'; audio_base64: string; mime_type: string }
+  | { type: 'motivations'; gpt: string; claude: string }
   | { type: 'done' };
 
 export type SSECallback = (event: SSEEvent) => void;
@@ -111,31 +112,39 @@ export function apiAutoStream(
   return streamPost('/auto/stream', { session_id: sessionId }, onEvent, signal);
 }
 
-/** Transcribe audio */
-export async function apiTranscribe(
-  sessionId: string,
-  audioBlob: Blob,
-  promptHint?: string
-): Promise<{ session_id: string; text: string | null }> {
-  const form = new FormData();
-  form.append('session_id', sessionId);
-  form.append('audio', audioBlob, 'recording.webm');
-  if (promptHint) form.append('prompt_hint', promptHint);
-  const resp = await fetch(`${API_BASE}/transcribe`, { method: 'POST', body: form });
-  if (!resp.ok) throw new Error(`Transcribe failed: ${resp.status}`);
-  return resp.json();
-}
-
 /** Hot-swap settings (voice, mode, etc.) for an existing session */
 export async function apiUpdateSettings(
   sessionId: string,
   settings: Record<string, unknown>
 ): Promise<void> {
-  await fetch(`${API_BASE}/settings/update`, {
+  const resp = await fetch(`${API_BASE}/settings/update`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ session_id: sessionId, settings }),
-  }).catch(() => {});
+  });
+  if (!resp.ok) {
+    throw new Error(`Settings update failed: ${resp.status}`);
+  }
+}
+
+/** Fetch debug logs from backend */
+export interface LogEntry {
+  t: number;
+  ts: string;
+  cat: string;
+  msg: string;
+  [key: string]: unknown;
+}
+
+export async function apiDebugLogs(since: number = 0): Promise<LogEntry[]> {
+  try {
+    const resp = await fetch(`${API_BASE}/debug/logs?since=${since}`);
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    return data.logs || [];
+  } catch {
+    return [];
+  }
 }
 
 /** Delete session */
