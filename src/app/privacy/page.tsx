@@ -39,7 +39,7 @@ export default function PrivacyPage() {
               <div>
                 <h3 className="text-lg font-semibold text-bot-text mb-2">Conversation Content</h3>
                 <p className="text-bot-text leading-relaxed">
-                  When you use 2BOTS, your conversation inputs are transmitted to Anthropic (for Claude) and OpenAI (for ChatGPT) API services to generate responses. 2BOTS does not store conversation transcripts — sessions exist only in server memory while active and are discarded when the session ends.
+                  When you use 2BOTS, your conversation inputs are transmitted to OpenAI (for ChatGPT) and Anthropic (for Claude) API services to generate responses. 2BOTS does not store conversation transcripts — sessions exist only in server memory while active and are discarded when the session ends.
                 </p>
               </div>
 
