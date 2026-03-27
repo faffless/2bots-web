@@ -56,7 +56,7 @@ export function usePipeline() {
   const generationRef = useRef(0);
   // ---- CHAT MODE ---- Timer for auto-resuming autopilot after user goes quiet
   const chatModeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const CHAT_MODE_TIMEOUT = 5000; // ---- CHAT MODE ---- 5 seconds before autopilot resumes
+  const CHAT_MODE_TIMEOUT = 2000; // ---- CHAT MODE ---- 2 seconds before autopilot resumes
   // Batch timing — for estimating settings delay
   const batchStartTimeRef = useRef(0);
   const batchMsgsPlayedRef = useRef(0);
