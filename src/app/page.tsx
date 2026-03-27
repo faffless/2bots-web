@@ -10,6 +10,7 @@ import { useSpeechInput } from '@/hooks/useSpeechInput';
 import ChatBubble from '@/components/ChatBubble';
 import BotSettingsPanel from '@/components/BotSettingsPanel';
 import PricingOverlay from '@/components/PricingOverlay';
+import StartupLoader from '@/components/StartupLoader';
 // SettingsCountdown removed — replaced with simple toast
 
 
@@ -227,6 +228,10 @@ export default function Home() {
                     <span>2bots.ai</span>
                   </div>
                 </div>
+              )}
+
+              {pipeline.loading && !pipeline.messages.some(m => m.speaker === 'gpt' || m.speaker === 'claude') && (
+                <StartupLoader />
               )}
 
               {pipeline.started && pipeline.messages.map((msg) => (
