@@ -184,7 +184,7 @@ export default function Home() {
                   <div className="mt-8 text-[10px] text-bot-muted/30 flex gap-3">
                     <Link href="/terms" className="hover:text-bot-muted/60 transition">Terms</Link>
                     <Link href="/privacy" className="hover:text-bot-muted/60 transition">Privacy</Link>
-                    <span>2bots.io</span>
+                    <span>2bots.ai</span>
                   </div>
                 </div>
               )}

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: '2BOTS — Claude & ChatGPT Together',
     description: 'Talk to Claude and ChatGPT at the same time.',
-    url: 'https://2bots.io',
+    url: 'https://2bots.ai',
     siteName: '2BOTS',
     type: 'website',
   },
