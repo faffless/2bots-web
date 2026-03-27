@@ -10,11 +10,12 @@ import { useSpeechInput } from '@/hooks/useSpeechInput';
 import ChatBubble from '@/components/ChatBubble';
 import BotSettingsPanel from '@/components/BotSettingsPanel';
 import PricingOverlay from '@/components/PricingOverlay';
-import SettingsCountdown from '@/components/SettingsCountdown';
+// SettingsCountdown removed — replaced with simple toast
 
 
 import {
-  MODES,
+  MODES_LANDING,
+  MODES_CONVERSATION,
   CONVERSATION_IDEAS,
   getPersonalityLabel,
 } from '@/lib/constants';
@@ -22,6 +23,8 @@ import {
 export default function Home() {
   const [showPricing, setShowPricing] = useState(false);
   const [typedText, setTypedText] = useState('');
+  const [showGptSettings, setShowGptSettings] = useState(false);
+  const [showClaudeSettings, setShowClaudeSettings] = useState(false);
 
   // Rotating placeholder from conversation ideas
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
@@ -55,6 +58,12 @@ export default function Home() {
   });
 
   const handleStartClick = async () => {
+    // If "random" is selected, pick a random format and lock it in
+    if (settings.interactionStyle === 'random') {
+      const formatKeys = Object.keys(MODES_CONVERSATION).filter(k => k !== 'mix');
+      const randomFormat = formatKeys[Math.floor(Math.random() * formatKeys.length)];
+      settings.setInteractionStyle(randomFormat);
+    }
     const result = await pipeline.handleStart(settings.getSettings, (gptP, claudeP) => {
       if (gptP !== 'default') settings.setGptPersonality(gptP);
       if (claudeP !== 'default') settings.setClaudePersonality(claudeP);
@@ -79,58 +88,75 @@ export default function Home() {
     <div className="min-h-screen bg-bot-bg flex flex-col items-center">
       <div className="w-full flex justify-center gap-4 px-2 md:px-6">
 
-        {/* LEFT PANEL: ChatGPT */}
+        {/* LEFT PANEL: ChatGPT — slide-in overlay */}
         {pipeline.started && pipeline.sessionId && (
-          <BotSettingsPanel
-            bot="gpt"
-            personality={settings.gptPersonality}
-            setPersonality={settings.setGptPersonality}
-            personalityStrength={settings.gptPersonalityStrength}
-            setPersonalityStrength={settings.setGptPersonalityStrength}
-            voice={settings.gptVoice}
-            setVoice={settings.setGptVoice}
-            quirks={settings.gptQuirks}
-            toggleQuirk={settings.toggleQuirk}
-            quirkStrength={settings.gptQuirkStrength}
-            setQuirkStrength={settings.setGptQuirkStrength}
-            responseLength={settings.gptResponseLength}
-            setResponseLength={settings.setGptResponseLength}
-            custom={settings.gptCustom}
-            setCustom={settings.setGptCustom}
-            motivation={pipeline.gptMotivation}
-          />
+          <div className={`fixed left-0 top-0 h-full z-30 transition-transform duration-300 ease-in-out ${showGptSettings ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="h-full bg-bot-panel border-r border-white/10 shadow-2xl overflow-y-auto w-64 p-3 pt-12">
+              <button
+                onClick={() => setShowGptSettings(false)}
+                className="absolute top-2 right-2 text-bot-muted hover:text-bot-text text-sm transition"
+              >✕</button>
+              <BotSettingsPanel
+                bot="gpt"
+                personality={settings.gptPersonality}
+                setPersonality={settings.setGptPersonality}
+                personalityStrength={settings.gptPersonalityStrength}
+                setPersonalityStrength={settings.setGptPersonalityStrength}
+                voice={settings.gptVoice}
+                setVoice={settings.setGptVoice}
+                ttsSpeed={settings.gptTtsSpeed}
+                setTtsSpeed={settings.setGptTtsSpeed}
+                quirks={settings.gptQuirks}
+                toggleQuirk={settings.toggleQuirk}
+                responseLength={settings.gptResponseLength}
+                setResponseLength={settings.setGptResponseLength}
+                custom={settings.gptCustom}
+                setCustom={settings.setGptCustom}
+                customTrait={settings.gptCustomTrait}
+                setCustomTrait={settings.setGptCustomTrait}
+              />
+            </div>
+          </div>
         )}
 
         {/* CHAT COLUMN */}
         <div className="w-full max-w-[620px] flex flex-col min-h-screen md:min-h-0 md:my-4">
           <div className="flex flex-col flex-1 md:rounded-xl md:border md:border-white/5 md:overflow-hidden bg-bot-bg md:max-h-[calc(100vh-32px)] md:min-h-[600px]">
 
-            {/* Header — status, mode, speed all in one bar */}
-            <div className="flex items-center justify-between px-3 py-1.5 bg-bot-panel border-b border-white/5 shrink-0" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-              <span className={`text-bot-gpt font-normal text-sm tracking-wide transition-opacity ${pipeline.started ? 'opacity-100' : 'opacity-0'}`}>ChatGPT</span>
-              <div className="flex items-center gap-1.5">
+            {/* Header — single row: ChatGPT | status | Format about Topic | Claude */}
+            <div className="bg-bot-panel border-b border-white/5 shrink-0 px-3 py-1.5" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+              <div className="flex items-center justify-between gap-1">
+                <button
+                  onClick={() => pipeline.started && setShowGptSettings(!showGptSettings)}
+                  className={`text-bot-gpt font-normal text-xs tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
+                >⚙ ChatGPT</button>
+
                 {pipeline.started && (
-                  <span className="text-[10px] text-bot-muted truncate max-w-[100px]">{pipeline.status}</span>
+                  <span className="text-[9px] text-bot-muted truncate max-w-[90px] shrink-0">{pipeline.status}</span>
                 )}
-                {pipeline.started && (
+
+                <div className="flex items-center gap-1 shrink-0">
                   <select value={settings.interactionStyle} onChange={(e) => settings.setInteractionStyle(e.target.value)}
                     className="bg-bot-bg border border-white/10 rounded px-1 py-0.5 text-bot-text text-[10px] outline-none">
-                    {Object.entries(MODES).map(([k, v]) => (
+                    {Object.entries(pipeline.started ? MODES_CONVERSATION : MODES_LANDING).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
                   </select>
-                )}
-                {pipeline.started && (
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[8px] text-bot-muted/40">🐢</span>
-                    <input type="range" min={0.5} max={2.0} step={0.1} value={settings.ttsSpeed}
-                      onChange={(e) => settings.setTtsSpeed(parseFloat(e.target.value))}
-                      className="w-10 h-0.5" title={`Speed: ${settings.ttsSpeed}x`} />
-                    <span className="text-[8px] text-bot-muted/40">🐇</span>
-                  </div>
-                )}
+                  <span className="text-[9px] text-bot-muted">about</span>
+                  <input
+                    type="text"
+                    value={settings.topic}
+                    onChange={(e) => settings.setTopic(e.target.value)}
+                    placeholder="anything"
+                    className="bg-bot-bg border border-white/10 rounded px-1 py-0.5 text-bot-text text-[10px] outline-none w-20 placeholder:text-bot-muted/50 focus:border-bot-user transition"
+                  />
+                </div>
+
+                <button
+                  onClick={() => pipeline.started && setShowClaudeSettings(!showClaudeSettings)}
+                  className={`text-bot-claude font-normal text-xs tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
+                >Claude ⚙</button>
               </div>
-              <span className={`text-bot-claude font-normal text-sm tracking-wide transition-opacity ${pipeline.started ? 'opacity-100' : 'opacity-0'}`}>CLAUDE</span>
             </div>
 
             {/* Chat messages area */}
@@ -155,7 +181,7 @@ export default function Home() {
                   </div>
                   <p className="text-xs text-bot-muted mb-4 font-normal">{getPersonalityLabel(pipeline.personality)}</p>
 
-                  <div className="absolute bottom-4 text-[10px] text-bot-muted/30 flex gap-3">
+                  <div className="mt-8 text-[10px] text-bot-muted/30 flex gap-3">
                     <Link href="/terms" className="hover:text-bot-muted/60 transition">Terms</Link>
                     <Link href="/privacy" className="hover:text-bot-muted/60 transition">Privacy</Link>
                     <span>2bots.io</span>
@@ -182,62 +208,66 @@ export default function Home() {
                 </button>
               ) : (
                 <>
-                  {/* Big SPEAK button */}
-                  {pipeline.sessionId && (
-                    <button
-                      onClick={speech.handleInterrupt}
-                      className={`w-full py-2.5 rounded-lg font-normal text-sm tracking-[0.15em] transition mb-2 ${
-                        speech.recording
-                          ? 'bg-green-500 text-white animate-pulse hover:bg-green-400'
-                          : pipeline.stopped
-                            ? 'bg-green-600/80 text-white hover:bg-green-500'
-                            : 'bg-bot-user text-bot-bg hover:opacity-90'
-                      }`}
-                      style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}
-                    >
-                      {speech.recording ? 'TAP TO SEND' : pipeline.stopped ? 'TAP TO SPEAK' : 'SPEAK'}
-                    </button>
-                  )}
-
-                  {/* Input + Send + action buttons — all one row */}
+                  {/* Input + mic + Send + action buttons — all one row */}
                   <div className="flex gap-1.5 items-center">
-                    <input
-                      ref={pipeline.inputRef}
-                      type="text" value={typedText}
-                      onChange={(e) => setTypedText(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSendClick()}
-                      placeholder={CONVERSATION_IDEAS[placeholderIdx]}
-                      disabled={!pipeline.sessionId}
-                      className="flex-1 min-w-0 bg-bot-bg border border-white/10 rounded px-2 py-1.5 text-xs text-bot-text placeholder:text-bot-muted/40 outline-none focus:border-bot-user transition"
-                    />
+                    <div className="flex-1 min-w-0 relative">
+                      <input
+                        ref={pipeline.inputRef}
+                        type="text" value={typedText}
+                        onChange={(e) => setTypedText(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSendClick()}
+                        placeholder={CONVERSATION_IDEAS[placeholderIdx]}
+                        disabled={!pipeline.sessionId}
+                        className="w-full bg-bot-bg border border-white/10 rounded px-2 py-1.5 pr-8 text-xs text-bot-text placeholder:text-bot-muted/40 outline-none focus:border-bot-user transition"
+                      />
+                      {pipeline.sessionId && (
+                        <button
+                          onClick={speech.handleInterrupt}
+                          className={`absolute right-1.5 top-1/2 -translate-y-1/2 transition ${
+                            speech.recording
+                              ? 'text-[#10a37f] animate-pulse'
+                              : 'text-bot-muted/50 hover:text-bot-text'
+                          }`}
+                          title={speech.recording ? 'Tap to send' : 'Voice input'}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                    {/* Send — arrow icon */}
                     <button
                       onClick={() => handleSendClick()}
                       disabled={!pipeline.sessionId || !typedText.trim()}
-                      className="bg-bot-user text-bot-bg px-3 py-1.5 rounded font-normal text-[11px] tracking-wide hover:opacity-90 transition disabled:opacity-40 shrink-0"
+                      className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/10 rounded-lg text-bot-text hover:bg-white/20 transition disabled:opacity-30 shrink-0"
+                      title="Send"
                     >
-                      Send
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                      </svg>
                     </button>
-                    {pipeline.stopped && pipeline.sessionId && !speech.recording && (
-                      <button onClick={pipeline.handleGo}
-                        className="px-2 py-1.5 bg-green-600/20 border border-green-500/40 rounded text-[10px] font-normal tracking-wide text-green-400 hover:bg-green-600/30 transition shrink-0">
-                        GO
-                      </button>
-                    )}
-                    {pipeline.sessionId && !pipeline.stopped && !speech.recording && (
-                      <button onClick={pipeline.handleStop}
-                        className="px-2 py-1.5 border border-white/10 rounded text-[10px] font-normal tracking-wide text-bot-text hover:bg-white/5 transition shrink-0">
-                        PAUSE
-                      </button>
-                    )}
+                    {/* Pause/Play toggle */}
                     {pipeline.sessionId && (
-                      <button onClick={pipeline.handleEnd}
-                        className="px-2 py-1.5 border border-red-500/20 rounded text-[10px] font-normal tracking-wide text-red-400/70 hover:bg-red-500/10 transition shrink-0">
-                        END
+                      <button
+                        onClick={pipeline.stopped ? pipeline.handleGo : pipeline.handleStop}
+                        className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/10 rounded-lg text-bot-text hover:bg-white/20 transition shrink-0"
+                        title={pipeline.stopped ? 'Resume' : 'Pause'}
+                      >
+                        {pipeline.stopped ? '▶' : '⏸'}
                       </button>
                     )}
+                    {/* New conversation */}
                     <button onClick={handleNewClick}
-                      className="px-2 py-1.5 bg-bot-user/10 border border-bot-user/30 rounded text-[10px] font-normal tracking-wide text-bot-user hover:bg-bot-user/20 transition shrink-0">
-                      NEW
+                      className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/10 rounded-lg text-bot-text hover:bg-white/20 transition shrink-0"
+                      title="New conversation"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                      </svg>
                     </button>
                   </div>
                 </>
@@ -246,34 +276,39 @@ export default function Home() {
           </div>
         </div>
 
-        {/* RIGHT PANEL: Claude */}
+        {/* RIGHT PANEL: Claude — slide-in overlay */}
         {pipeline.started && pipeline.sessionId && (
-          <BotSettingsPanel
-            bot="claude"
-            personality={settings.claudePersonality}
-            setPersonality={settings.setClaudePersonality}
-            personalityStrength={settings.claudePersonalityStrength}
-            setPersonalityStrength={settings.setClaudePersonalityStrength}
-            voice={settings.claudeVoice}
-            setVoice={settings.setClaudeVoice}
-            quirks={settings.claudeQuirks}
-            toggleQuirk={settings.toggleQuirk}
-            quirkStrength={settings.claudeQuirkStrength}
-            setQuirkStrength={settings.setClaudeQuirkStrength}
-            responseLength={settings.claudeResponseLength}
-            setResponseLength={settings.setClaudeResponseLength}
-            custom={settings.claudeCustom}
-            setCustom={settings.setClaudeCustom}
-            motivation={pipeline.claudeMotivation}
-          />
+          <div className={`fixed right-0 top-0 h-full z-30 transition-transform duration-300 ease-in-out ${showClaudeSettings ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className="h-full bg-bot-panel border-l border-white/10 shadow-2xl overflow-y-auto w-64 p-3 pt-12">
+              <button
+                onClick={() => setShowClaudeSettings(false)}
+                className="absolute top-2 left-2 text-bot-muted hover:text-bot-text text-sm transition"
+              >✕</button>
+              <BotSettingsPanel
+                bot="claude"
+                personality={settings.claudePersonality}
+                setPersonality={settings.setClaudePersonality}
+                personalityStrength={settings.claudePersonalityStrength}
+                setPersonalityStrength={settings.setClaudePersonalityStrength}
+                voice={settings.claudeVoice}
+                setVoice={settings.setClaudeVoice}
+                ttsSpeed={settings.claudeTtsSpeed}
+                setTtsSpeed={settings.setClaudeTtsSpeed}
+                quirks={settings.claudeQuirks}
+                toggleQuirk={settings.toggleQuirk}
+                responseLength={settings.claudeResponseLength}
+                setResponseLength={settings.setClaudeResponseLength}
+                custom={settings.claudeCustom}
+                setCustom={settings.setClaudeCustom}
+                customTrait={settings.claudeCustomTrait}
+                setCustomTrait={settings.setClaudeCustomTrait}
+              />
+            </div>
+          </div>
         )}
 
       </div>
 
-      {/* Settings countdown overlays */}
-      {(pipeline.gptCountdown || pipeline.claudeCountdown) && (
-        <SettingsCountdown gptCount={pipeline.gptCountdown} claudeCount={pipeline.claudeCountdown} />
-      )}
     </div>
   );
 }

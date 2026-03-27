@@ -16,7 +16,7 @@ export type Round = {
 };
 
 // ---- Limits ----
-export const FREE_SESSION_LIMIT = 3;
+export const FREE_SESSION_LIMIT = 9999; // effectively disabled for development
 export const MAX_TURNS_PER_SESSION = 50;
 
 // ---- Personality slider ----
@@ -76,17 +76,35 @@ export const VOICE_OPTIONS: Record<string, string> = {
   shimmer: 'Shimmer (Bright Female)',
 };
 
-export const MODES: Record<string, string> = {
-  conversation: 'Conversation',
-  debate:       'Debate',
-  roleplay:     'Roleplay',
-  bedtime_story:'Bedtime Story',
-  comedy:       'Comedy',
-  interview:    'Interview',
-  philosophy:   'Philosophy',
+// Modes shown on landing page (includes Random + Mix)
+export const MODES_LANDING: Record<string, string> = {
+  random:         'Random',
+  mix:            'Mix',
+  conversation:   'Conversation',
+  debate:         'Debate',
+  roleplay:       'Roleplay',
+  bedtime_story:  'Storytime',
+  comedy:         'Comedy',
+  interview:      'Interview',
+  philosophy:     'Philosophy',
+  movie_dialogue: 'Movie Dialogue',
 };
 
-// Keep old name for backward compat
+// Modes shown during conversation (includes Mix, no Random)
+export const MODES_CONVERSATION: Record<string, string> = {
+  mix:            'Mix',
+  conversation:   'Conversation',
+  debate:         'Debate',
+  roleplay:       'Roleplay',
+  bedtime_story:  'Storytime',
+  comedy:         'Comedy',
+  interview:      'Interview',
+  philosophy:     'Philosophy',
+  movie_dialogue: 'Movie Dialogue',
+};
+
+// Combined for backward compat
+export const MODES: Record<string, string> = { ...MODES_LANDING, ...MODES_CONVERSATION };
 export const INTERACTION_STYLES = MODES;
 
 export const PERSONALITY_OPTIONS: Record<string, string> = {

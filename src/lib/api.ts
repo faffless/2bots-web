@@ -21,12 +21,13 @@ export type SSEEvent =
   | { type: 'text'; speaker: 'gpt' | 'claude'; text: string }
   | { type: 'audio'; speaker: 'gpt' | 'claude'; audio_base64: string; mime_type: string }
   | { type: 'motivations'; gpt: string; claude: string }
-  | { type: 'done' };
+  | { type: 'done'; next_generator?: string; filler?: boolean };
 
-export type SSECallback = (event: SSEEvent) => void;
+export type SSECallback = (event: SSEEvent) => void | Promise<void>;
 
 /**
  * POST to an SSE endpoint, parse events as they arrive, call back for each.
+ * Callbacks are awaited so audio playback completes before processing the next event.
  * Accepts an optional AbortSignal so callers can kill in-flight streams.
  */
 async function streamPost(
@@ -62,7 +63,7 @@ async function streamPost(
         if (line.startsWith('data: ')) {
           try {
             const event = JSON.parse(line.slice(6)) as SSEEvent;
-            onEvent(event);
+            await onEvent(event);
           } catch {
             // skip malformed events
           }
@@ -78,7 +79,7 @@ async function streamPost(
   if (buffer.startsWith('data: ')) {
     try {
       const event = JSON.parse(buffer.slice(6)) as SSEEvent;
-      onEvent(event);
+      await onEvent(event);
     } catch { /* skip */ }
   }
 }
@@ -110,6 +111,26 @@ export function apiAutoStream(
   signal?: AbortSignal
 ): Promise<void> {
   return streamPost('/auto/stream', { session_id: sessionId }, onEvent, signal);
+}
+
+/** Autopilot — one AI generates 10-14 messages for both bots */
+export function apiAutopilotStream(
+  sessionId: string,
+  whoGenerates: string,
+  onEvent: SSECallback,
+  signal?: AbortSignal
+): Promise<void> {
+  return streamPost('/autopilot/stream', { session_id: sessionId, who_generates: whoGenerates }, onEvent, signal);
+}
+
+/** Filler — 2 quick acknowledgment messages after user speaks */
+export function apiFillerStream(
+  sessionId: string,
+  userText: string,
+  onEvent: SSECallback,
+  signal?: AbortSignal
+): Promise<void> {
+  return streamPost('/filler/stream', { session_id: sessionId, user_text: userText }, onEvent, signal);
 }
 
 /** Hot-swap settings (voice, mode, etc.) for an existing session */

@@ -6,6 +6,7 @@ export interface SettingsState {
   gptVoice: string;
   claudeVoice: string;
   interactionStyle: string;
+  topic: string;
   gptResponseLength: string;
   claudeResponseLength: string;
   gptPersonality: string;
@@ -14,17 +15,21 @@ export interface SettingsState {
   claudeQuirks: string[];
   gptCustom: string;
   claudeCustom: string;
+  gptCustomTrait: string;
+  claudeCustomTrait: string;
   gptPersonalityStrength: number;
   claudePersonalityStrength: number;
   gptQuirkStrength: number;
   claudeQuirkStrength: number;
-  ttsSpeed: number;
+  gptTtsSpeed: number;
+  claudeTtsSpeed: number;
 }
 
 export interface SettingsActions {
   setGptVoice: (v: string) => void;
   setClaudeVoice: (v: string) => void;
   setInteractionStyle: (v: string) => void;
+  setTopic: (v: string) => void;
   setGptResponseLength: (v: string) => void;
   setClaudeResponseLength: (v: string) => void;
   setGptPersonality: (v: string) => void;
@@ -33,11 +38,14 @@ export interface SettingsActions {
   setClaudeQuirks: React.Dispatch<React.SetStateAction<string[]>>;
   setGptCustom: (v: string) => void;
   setClaudeCustom: (v: string) => void;
+  setGptCustomTrait: (v: string) => void;
+  setClaudeCustomTrait: (v: string) => void;
   setGptPersonalityStrength: (v: number) => void;
   setClaudePersonalityStrength: (v: number) => void;
   setGptQuirkStrength: (v: number) => void;
   setClaudeQuirkStrength: (v: number) => void;
-  setTtsSpeed: (v: number) => void;
+  setGptTtsSpeed: (v: number) => void;
+  setClaudeTtsSpeed: (v: number) => void;
   toggleQuirk: (bot: 'gpt' | 'claude', quirk: string) => void;
   getSettings: () => Record<string, unknown>;
   resetSettingsInit: () => void;
@@ -47,22 +55,26 @@ export function useSettings(
   sessionId: string | null,
   onSettingsChanged: (bots: ('gpt' | 'claude')[]) => void,
 ): SettingsState & SettingsActions {
-  const [gptVoice, _setGptVoice] = useState('alloy');
+  const [gptVoice, _setGptVoice] = useState('shimmer');
   const [claudeVoice, _setClaudeVoice] = useState('onyx');
-  const [interactionStyle, _setInteractionStyle] = useState('conversation');
-  const [gptResponseLength, _setGptResponseLength] = useState('concise');
-  const [claudeResponseLength, _setClaudeResponseLength] = useState('concise');
+  const [interactionStyle, _setInteractionStyle] = useState('random');
+  const [topic, _setTopic] = useState('');
+  const [gptResponseLength, _setGptResponseLength] = useState('avg_20');
+  const [claudeResponseLength, _setClaudeResponseLength] = useState('avg_20');
   const [gptPersonality, _setGptPersonality] = useState('default');
   const [claudePersonality, _setClaudePersonality] = useState('default');
   const [gptQuirks, _setGptQuirks] = useState<string[]>([]);
   const [claudeQuirks, _setClaudeQuirks] = useState<string[]>([]);
   const [gptCustom, _setGptCustom] = useState('');
   const [claudeCustom, _setClaudeCustom] = useState('');
+  const [gptCustomTrait, _setGptCustomTrait] = useState('');
+  const [claudeCustomTrait, _setClaudeCustomTrait] = useState('');
   const [gptPersonalityStrength, _setGptPersonalityStrength] = useState(1);
   const [claudePersonalityStrength, _setClaudePersonalityStrength] = useState(1);
   const [gptQuirkStrength, _setGptQuirkStrength] = useState(1);
   const [claudeQuirkStrength, _setClaudeQuirkStrength] = useState(1);
-  const [ttsSpeed, _setTtsSpeed] = useState(1.0);
+  const [gptTtsSpeed, _setGptTtsSpeed] = useState(1.0);
+  const [claudeTtsSpeed, _setClaudeTtsSpeed] = useState(1.0);
 
   const settingsInitRef = useRef(false);
   const settingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -77,6 +89,7 @@ export function useSettings(
   const setGptVoice = (v: string) => { gptChangedRef.current = true; _setGptVoice(v); };
   const setClaudeVoice = (v: string) => { claudeChangedRef.current = true; _setClaudeVoice(v); };
   const setInteractionStyle = (v: string) => { gptChangedRef.current = true; claudeChangedRef.current = true; _setInteractionStyle(v); };
+  const setTopic = (v: string) => { gptChangedRef.current = true; claudeChangedRef.current = true; _setTopic(v); };
   const setGptResponseLength = (v: string) => { gptChangedRef.current = true; _setGptResponseLength(v); };
   const setClaudeResponseLength = (v: string) => { claudeChangedRef.current = true; _setClaudeResponseLength(v); };
   const setGptPersonality = (v: string) => { gptChangedRef.current = true; _setGptPersonality(v); };
@@ -85,11 +98,14 @@ export function useSettings(
   const setClaudeQuirks: React.Dispatch<React.SetStateAction<string[]>> = (v) => { claudeChangedRef.current = true; _setClaudeQuirks(v); };
   const setGptCustom = (v: string) => { gptChangedRef.current = true; _setGptCustom(v); };
   const setClaudeCustom = (v: string) => { claudeChangedRef.current = true; _setClaudeCustom(v); };
+  const setGptCustomTrait = (v: string) => { gptChangedRef.current = true; _setGptCustomTrait(v); };
+  const setClaudeCustomTrait = (v: string) => { claudeChangedRef.current = true; _setClaudeCustomTrait(v); };
   const setGptPersonalityStrength = (v: number) => { gptChangedRef.current = true; _setGptPersonalityStrength(v); };
   const setClaudePersonalityStrength = (v: number) => { claudeChangedRef.current = true; _setClaudePersonalityStrength(v); };
   const setGptQuirkStrength = (v: number) => { gptChangedRef.current = true; _setGptQuirkStrength(v); };
   const setClaudeQuirkStrength = (v: number) => { claudeChangedRef.current = true; _setClaudeQuirkStrength(v); };
-  const setTtsSpeed = (v: number) => { gptChangedRef.current = true; claudeChangedRef.current = true; _setTtsSpeed(v); };
+  const setGptTtsSpeed = (v: number) => { gptChangedRef.current = true; _setGptTtsSpeed(v); };
+  const setClaudeTtsSpeed = (v: number) => { claudeChangedRef.current = true; _setClaudeTtsSpeed(v); };
 
   const getSettings = () => ({
     gpt_response_length: gptResponseLength,
@@ -97,17 +113,21 @@ export function useSettings(
     gpt_voice: gptVoice,
     claude_voice: claudeVoice,
     mode: interactionStyle,
+    topic: topic || 'random',
     gpt_personality: gptPersonality,
     claude_personality: claudePersonality,
     gpt_quirks: gptQuirks,
     claude_quirks: claudeQuirks,
     gpt_custom: gptCustom,
     claude_custom: claudeCustom,
+    gpt_custom_trait: gptCustomTrait,
+    claude_custom_trait: claudeCustomTrait,
     gpt_personality_strength: gptPersonalityStrength,
     claude_personality_strength: claudePersonalityStrength,
     gpt_quirk_strength: gptQuirkStrength,
     claude_quirk_strength: claudeQuirkStrength,
-    tts_speed: ttsSpeed,
+    gpt_tts_speed: gptTtsSpeed,
+    claude_tts_speed: claudeTtsSpeed,
   });
 
   // Hot-swap: push to backend on change (debounced API call, instant countdown)
@@ -141,9 +161,9 @@ export function useSettings(
       }
     }, 300);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gptVoice, claudeVoice, interactionStyle, gptResponseLength, claudeResponseLength,
-      gptPersonality, claudePersonality, gptQuirks, claudeQuirks, gptCustom, claudeCustom,
-      gptPersonalityStrength, claudePersonalityStrength, gptQuirkStrength, claudeQuirkStrength, ttsSpeed]);
+  }, [gptVoice, claudeVoice, interactionStyle, topic, gptResponseLength, claudeResponseLength,
+      gptPersonality, claudePersonality, gptQuirks, claudeQuirks, gptCustom, claudeCustom, gptCustomTrait, claudeCustomTrait,
+      gptPersonalityStrength, claudePersonalityStrength, gptQuirkStrength, claudeQuirkStrength, gptTtsSpeed, claudeTtsSpeed]);
 
   const toggleQuirk = (bot: 'gpt' | 'claude', quirk: string) => {
     const setter = bot === 'gpt' ? setGptQuirks : setClaudeQuirks;
@@ -158,6 +178,7 @@ export function useSettings(
     gptVoice, setGptVoice,
     claudeVoice, setClaudeVoice,
     interactionStyle, setInteractionStyle,
+    topic, setTopic,
     gptResponseLength, setGptResponseLength,
     claudeResponseLength, setClaudeResponseLength,
     gptPersonality, setGptPersonality,
@@ -166,11 +187,14 @@ export function useSettings(
     claudeQuirks, setClaudeQuirks,
     gptCustom, setGptCustom,
     claudeCustom, setClaudeCustom,
+    gptCustomTrait, setGptCustomTrait,
+    claudeCustomTrait, setClaudeCustomTrait,
     gptPersonalityStrength, setGptPersonalityStrength,
     claudePersonalityStrength, setClaudePersonalityStrength,
     gptQuirkStrength, setGptQuirkStrength,
     claudeQuirkStrength, setClaudeQuirkStrength,
-    ttsSpeed, setTtsSpeed,
+    gptTtsSpeed, setGptTtsSpeed,
+    claudeTtsSpeed, setClaudeTtsSpeed,
     toggleQuirk,
     getSettings,
     resetSettingsInit,

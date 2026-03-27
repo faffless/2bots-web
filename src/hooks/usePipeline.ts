@@ -3,6 +3,8 @@ import {
   apiStartStream,
   apiTurnStream,
   apiAutoStream,
+  apiAutopilotStream,
+  apiFillerStream,
   apiDeleteSession,
   type SSEEvent,
 } from '@/lib/api';
@@ -42,6 +44,20 @@ export function usePipeline() {
   const settingsVersionRef = useRef(0);
   const gptCountdownRef = useRef<number>(0);
   const claudeCountdownRef = useRef<number>(0);
+  // Track which AI generates the next autopilot batch (leapfrog)
+  const nextGeneratorRef = useRef<string>('claude');
+  // Track total autopilot messages and batches for throttling
+  const autopilotMsgCountRef = useRef(0);
+  const autopilotBatchCountRef = useRef(0);
+  const MAX_AUTOPILOT_BATCHES = 6;
+  const MAX_AUTOPILOT_MESSAGES = 80;
+  // Generation counter — bumped every time user sends a message.
+  // Used to discard stale queued messages from old batches.
+  const generationRef = useRef(0);
+  // Batch timing — for estimating settings delay
+  const batchStartTimeRef = useRef(0);
+  const batchMsgsPlayedRef = useRef(0);
+  const [settingsDelay, setSettingsDelay] = useState<number | null>(null);
 
   useEffect(() => { sessionRef.current = sessionId; }, [sessionId]);
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -66,7 +82,7 @@ export function usePipeline() {
     return abortRef.current;
   }, [abortAll]);
 
-  // ---- Fetch a round from SSE ----
+  // ---- Fetch a round from SSE (used for opener only now) ----
   const fetchRound = useCallback(async (
     sid: string,
     streamFn: (sid: string, onEvent: (e: SSEEvent) => void, signal: AbortSignal) => Promise<void>,
@@ -85,7 +101,6 @@ export function usePipeline() {
         } else if (event.type === 'session') {
           sessionRef.current = event.session_id;
           setSessionId(event.session_id);
-          // Store random personality assignments for UI sync
           if (event.gpt_personality) {
             (round as Record<string, unknown>).gptPersonality = event.gpt_personality;
           }
@@ -104,17 +119,15 @@ export function usePipeline() {
     return round;
   }, []);
 
-  // ---- Play a round: show text + play audio ----
+  // ---- Play a round: show text + play audio (for opener) ----
   const playRound = useCallback(async (round: Round): Promise<boolean> => {
     const t0 = performance.now();
     if (round.gptText) {
       addMsg('gpt', round.gptText);
       setStatus('ChatGPT speaking...');
-      dlog('audio', `GPT playing (${round.gptText.split(' ').length}w)...`);
     }
     if (round.gptAudio) {
       await playAudioBase64(round.gptAudio.base64, round.gptAudio.mime);
-      dlog('audio', `GPT done in ${((performance.now() - t0) / 1000).toFixed(1)}s`);
     }
     if (gptCountdownRef.current > 0) {
       gptCountdownRef.current--;
@@ -122,15 +135,12 @@ export function usePipeline() {
     }
     if (stoppedRef.current || !runningRef.current) return false;
 
-    const t1 = performance.now();
     if (round.claudeText) {
       addMsg('claude', round.claudeText);
       setStatus('Claude speaking...');
-      dlog('audio', `Claude playing (${round.claudeText.split(' ').length}w)...`);
     }
     if (round.claudeAudio) {
       await playAudioBase64(round.claudeAudio.base64, round.claudeAudio.mime);
-      dlog('audio', `Claude done in ${((performance.now() - t1) / 1000).toFixed(1)}s`);
     }
     if (claudeCountdownRef.current > 0) {
       claudeCountdownRef.current--;
@@ -142,73 +152,141 @@ export function usePipeline() {
     return true;
   }, [addMsg]);
 
-  // ---- Pipeline auto-loop with one-round-ahead prefetch ----
-  const runPipeline = useCallback(async (
+  // ---- Stream and play an autopilot batch message by message ----
+  const streamAndPlayBatch = useCallback(async (
     sid: string,
-    initialPrefetch?: Promise<Round | null> | null,
-    initialController?: AbortController | null,
-  ) => {
+    whoGenerates: string,
+    controller: AbortController,
+  ): Promise<string | null> => {
+    // Returns the next_generator from the done event, or null if interrupted
+    let nextGen: string | null = null;
+    let batchMsgCount = 0;
+    const myGeneration = generationRef.current;
+    batchStartTimeRef.current = Date.now();
+    batchMsgsPlayedRef.current = 0;
+
+    try {
+      await apiAutopilotStream(sid, whoGenerates, async (event) => {
+        // Discard if a newer generation has started (user spoke)
+        if (generationRef.current !== myGeneration) return;
+
+        if (event.type === 'text') {
+          const speaker = event.speaker as ChatMsg['speaker'];
+          addMsg(speaker, event.text);
+          setStatus(speaker === 'gpt' ? 'ChatGPT speaking...' : 'Claude speaking...');
+          batchMsgCount++;
+          batchMsgsPlayedRef.current = batchMsgCount;
+          autopilotMsgCountRef.current++;
+
+          // Tick countdowns
+          if (speaker === 'gpt' && gptCountdownRef.current > 0) {
+            gptCountdownRef.current--;
+            setGptCountdown(gptCountdownRef.current || null);
+          }
+          if (speaker === 'claude' && claudeCountdownRef.current > 0) {
+            claudeCountdownRef.current--;
+            setClaudeCountdown(claudeCountdownRef.current || null);
+          }
+        } else if (event.type === 'audio') {
+          await playAudioBase64(event.audio_base64, event.mime_type);
+        } else if (event.type === 'motivations') {
+          setGptMotivation(event.gpt || '');
+          setClaudeMotivation(event.claude || '');
+        } else if (event.type === 'done') {
+          nextGen = (event as Record<string, unknown>).next_generator as string || null;
+        }
+      }, controller.signal);
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return null;
+      throw err;
+    }
+
+    autopilotBatchCountRef.current++;
+    dlog('autopilot', `Batch done: ${batchMsgCount} msgs (total: ${autopilotMsgCountRef.current} msgs, ${autopilotBatchCountRef.current} batches)`);
+    return nextGen;
+  }, [addMsg]);
+
+  // ---- Stream and play filler pair ----
+  const streamAndPlayFiller = useCallback(async (
+    sid: string,
+    userText: string,
+    controller: AbortController,
+  ): Promise<boolean> => {
+    const myGeneration = generationRef.current;
+    try {
+      await apiFillerStream(sid, userText, async (event) => {
+        if (generationRef.current !== myGeneration) return;
+        if (event.type === 'text') {
+          const speaker = event.speaker as ChatMsg['speaker'];
+          addMsg(speaker, event.text);
+          setStatus(speaker === 'gpt' ? 'ChatGPT speaking...' : 'Claude speaking...');
+        } else if (event.type === 'audio') {
+          await playAudioBase64(event.audio_base64, event.mime_type);
+        }
+      }, controller.signal);
+      return true;
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return false;
+      throw err;
+    }
+  }, [addMsg]);
+
+  // ---- Autopilot pipeline loop ----
+  const runAutopilot = useCallback(async (sid: string, firstGenerator?: string) => {
     runningRef.current = true;
-    let pendingRound: Promise<Round | null> | null = initialPrefetch || null;
-    let pendingController: AbortController | null = initialController || null;
-    let roundNum = 0;
+    let whoGenerates = firstGenerator || nextGeneratorRef.current;
+    let batchNum = 0;
 
     while (runningRef.current && sessionRef.current === sid && !stoppedRef.current) {
+      // Throttle check
+      if (autopilotBatchCountRef.current >= MAX_AUTOPILOT_BATCHES) {
+        dlog('autopilot', `Batch limit reached (${MAX_AUTOPILOT_BATCHES}). Stopping.`);
+        addMsg('system', 'Conversation paused — batch limit reached. Hit GO to continue or NEW to start over.');
+        setStopped(true);
+        stoppedRef.current = true;
+        break;
+      }
+      if (autopilotMsgCountRef.current >= MAX_AUTOPILOT_MESSAGES) {
+        dlog('autopilot', `Message limit reached (${MAX_AUTOPILOT_MESSAGES}). Stopping.`);
+        addMsg('system', 'Conversation paused — message limit reached. Hit GO to continue or NEW to start over.');
+        setStopped(true);
+        stoppedRef.current = true;
+        break;
+      }
+
       try {
-        roundNum++;
-        const roundT = performance.now();
-        let round: Round | null;
-        if (pendingRound) {
-          dlog('pipeline', `Round ${roundNum}: using prefetched data...`);
-          round = await pendingRound;
-          pendingRound = null;
-          pendingController = null;
-          dlog('pipeline', `Round ${roundNum}: resolved in ${((performance.now() - roundT) / 1000).toFixed(1)}s`);
-        } else {
-          dlog('pipeline', `Round ${roundNum}: fetching fresh...`);
-          setStatus('Bots are thinking...');
-          const ctrl = new AbortController();
-          abortRef.current = ctrl;
-          round = await fetchRound(sid, (s, cb, sig) => apiAutoStream(s, cb, sig), ctrl);
-          dlog('pipeline', `Round ${roundNum}: fresh fetch took ${((performance.now() - roundT) / 1000).toFixed(1)}s`);
-        }
+        batchNum++;
+        dlog('autopilot', `Batch ${batchNum}: generating via ${whoGenerates}...`);
+        setStatus('Bots are thinking...');
 
-        if (!round || !runningRef.current || stoppedRef.current) break;
+        const ctrl = freshAbort();
+        const nextGen = await streamAndPlayBatch(sid, whoGenerates, ctrl);
 
-        setTurnCount(prev => {
-          const next = prev + 1;
-          if (next >= MAX_TURNS_PER_SESSION) {
-            runningRef.current = false;
-            addMsg('system', 'Session limit reached. Start a new conversation.');
-          }
-          return next;
-        });
+        if (!nextGen || !runningRef.current || stoppedRef.current) break;
 
-        // Prefetch NEXT round while playing THIS one
-        pendingController = new AbortController();
-        abortRef.current = pendingController;
-        pendingRound = fetchRound(sid, (s, cb, sig) => apiAutoStream(s, cb, sig), pendingController);
-
-        setStatus('Bots chatting...');
-        const ok = await playRound(round);
-        if (!ok) {
-          pendingController?.abort();
-          pendingRound = null;
-          break;
-        }
+        // Leapfrog: switch to the other AI for next batch
+        whoGenerates = nextGen;
+        nextGeneratorRef.current = nextGen;
 
       } catch (err) {
-        if ((err as Error)?.name === 'AbortError') {
-          break;
-        }
-        console.error('Pipeline error:', err);
-        pendingRound = null;
+        if ((err as Error)?.name === 'AbortError') break;
+        console.error('Autopilot error:', err);
         await new Promise(r => setTimeout(r, 2000));
       }
     }
 
     runningRef.current = false;
-  }, [fetchRound, playRound, addMsg]);
+  }, [freshAbort, streamAndPlayBatch, addMsg]);
+
+  // Keep old runPipeline for backward compat (used by speech input)
+  const runPipeline = useCallback(async (
+    sid: string,
+    _initialPrefetch?: Promise<Round | null> | null,
+    _initialController?: AbortController | null,
+  ) => {
+    // Redirect to autopilot
+    await runAutopilot(sid);
+  }, [runAutopilot]);
 
   const stopPipeline = useCallback(() => {
     runningRef.current = false;
@@ -217,10 +295,20 @@ export function usePipeline() {
     abortAll();
   }, [abortAll]);
 
-  // ---- Settings changed callback (called from useSettings) ----
+  // ---- Settings changed callback ----
   const onSettingsChanged = useCallback((bots: ('gpt' | 'claude')[]) => {
     settingsVersionRef.current++;
-    // Set countdown only for the bot(s) whose settings changed
+    // Estimate seconds until settings take effect
+    const elapsed = (Date.now() - batchStartTimeRef.current) / 1000;
+    const played = batchMsgsPlayedRef.current || 1;
+    const avgPerMsg = elapsed / played;
+    const assumedBatchSize = 12;
+    const remaining = Math.max(0, assumedBatchSize - played);
+    const estSeconds = Math.round(remaining * avgPerMsg);
+    setSettingsDelay(estSeconds > 0 ? estSeconds : 5);
+    // Clear after the estimated time + a buffer
+    setTimeout(() => setSettingsDelay(null), (estSeconds + 5) * 1000);
+
     if (bots.includes('gpt')) {
       gptCountdownRef.current = 2;
       setGptCountdown(2);
@@ -229,9 +317,6 @@ export function usePipeline() {
       claudeCountdownRef.current = 2;
       setClaudeCountdown(2);
     }
-    // Don't abort the prefetch — let it finish and play with old settings.
-    // The backend session is already updated, so the NEXT prefetch will use new settings.
-    // This eliminates the awkward pause.
     dlog('settings', `Settings changed for ${bots.join(', ')} — will apply in ~2 responses`);
   }, []);
 
@@ -247,46 +332,65 @@ export function usePipeline() {
       stoppedRef.current = false;
       setStopped(false);
       setTurnCount(0);
+      autopilotBatchCountRef.current = 0;
+      autopilotMsgCountRef.current = 0;
       setStatus('Bots are thinking...');
       addMsg('system', 'Conversation started!');
 
-      const startT = performance.now();
-      dlog('start', 'Requesting first round from AI...');
+      dlog('start', 'Requesting opener...');
+
+      let prefetchStarted = false;
+      let gptPersonalityResult = 'default';
+      let claudePersonalityResult = 'default';
 
       const ctrl = freshAbort();
-      const round = await fetchRound('__pending__',
-        async (_sid, onEvent, signal) => {
-          await apiStartStream(personality, getSettings(), onEvent, signal);
-        },
-        ctrl,
-      );
 
-      if (!round) { setStarted(false); return null; }
+      // Stream opener and play each message as it arrives (same as autopilot)
+      await apiStartStream(personality, getSettings(), async (event) => {
+        if (event.type === 'session' && event.session_id) {
+          sessionRef.current = event.session_id;
+          setSessionId(event.session_id);
+          if (event.gpt_personality) gptPersonalityResult = event.gpt_personality;
+          if (event.claude_personality) claudePersonalityResult = event.claude_personality;
 
-      // Sync random personality assignments from backend
-      if (onPersonalitiesAssigned && (round.gptPersonality || round.claudePersonality)) {
-        onPersonalitiesAssigned(round.gptPersonality || 'default', round.claudePersonality || 'default');
+          // Prefetch Claude's batch as soon as we have a session ID
+          if (!prefetchStarted) {
+            prefetchStarted = true;
+            const sid = event.session_id;
+            dlog('start', `Got session ${sid.slice(0, 8)}... — prefetching Claude batch NOW`);
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
+            fetch(`${apiBase}/autopilot/prefetch`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ session_id: sid, who_generates: 'claude' }),
+            }).catch(() => {});
+          }
+        } else if (event.type === 'text') {
+          const who = event.speaker as 'gpt' | 'claude';
+          addMsg(who, event.text);
+          setStatus(who === 'gpt' ? 'ChatGPT speaking...' : 'Claude speaking...');
+        } else if (event.type === 'audio') {
+          await playAudioBase64(event.audio_base64, event.mime_type);
+        }
+      }, ctrl.signal);
+
+      // Sync random personality assignments
+      if (onPersonalitiesAssigned && (gptPersonalityResult !== 'default' || claudePersonalityResult !== 'default')) {
+        onPersonalitiesAssigned(gptPersonalityResult, claudePersonalityResult);
       }
 
       initDoneRef.current = true;
       const sid = sessionRef.current;
       if (!sid) { setStarted(false); return null; }
 
-      dlog('start', `First round ready in ${((performance.now() - startT) / 1000).toFixed(1)}s`);
-      setStatus('Bots chatting...');
+      dlog('start', 'Opener done, starting autopilot...');
       runningRef.current = true;
+      setStatus('Bots chatting...');
 
-      const prefetchCtrl = new AbortController();
-      abortRef.current = prefetchCtrl;
-      const prefetchPromise = fetchRound(sid, (s, cb, sig) => apiAutoStream(s, cb, sig), prefetchCtrl);
-      dlog('start', 'Prefetching first auto round during opener playback');
-
-      await playRound(round);
-
+      // Start autopilot — Claude's batch may already be ready from the prefetch
       if (sid && !stoppedRef.current) {
-        runPipeline(sid, prefetchPromise, prefetchCtrl);
-      } else {
-        prefetchCtrl.abort();
+        nextGeneratorRef.current = 'claude';
+        runAutopilot(sid, 'claude');
       }
       return null;
     } catch (err) {
@@ -304,7 +408,9 @@ export function usePipeline() {
     const text = (overrideText || typedText || '').trim();
     if (!text || !sessionId) return;
 
+    // Stop current autopilot and invalidate any queued messages
     stopPipeline();
+    generationRef.current++;
     stoppedRef.current = false;
 
     addMsg('user', text);
@@ -312,28 +418,24 @@ export function usePipeline() {
     setStatus('Getting response...');
 
     try {
-      const ctrl = freshAbort();
-      const round = await fetchRound(sessionId,
-        (sid, onEvent, signal) => apiTurnStream(sid, text, onEvent, signal),
-        ctrl,
-      );
-      if (!round || stoppedRef.current) return;
+      // Step 1: Get 2 filler messages (quick acknowledgments) while the batch AI thinks
+      const fillerCtrl = freshAbort();
 
-      setTurnCount(prev => prev + 1);
+      // Determine which AI generates the next batch (the OTHER one from the filler)
+      // Filler is generated by GPT always, batch by the current nextGenerator
+      const batchGenerator = nextGeneratorRef.current;
+
+      // Play the filler pair
       runningRef.current = true;
-      setStatus('Bots chatting...');
+      stoppedRef.current = false;
+      await streamAndPlayFiller(sessionId, text, fillerCtrl);
 
-      const prefetchCtrl = new AbortController();
-      abortRef.current = prefetchCtrl;
-      const prefetchPromise = fetchRound(sessionId,
-        (s, cb, sig) => apiAutoStream(s, cb, sig), prefetchCtrl);
-
-      await playRound(round);
-
-      if (sessionRef.current && !stoppedRef.current) {
-        runPipeline(sessionRef.current, prefetchPromise, prefetchCtrl);
-      } else {
-        prefetchCtrl.abort();
+      // Step 2: Start autopilot with the batch generator
+      // Always restart unless the user explicitly paused/ended during fillers
+      runningRef.current = true;
+      stoppedRef.current = false;
+      if (sessionRef.current) {
+        runAutopilot(sessionRef.current, batchGenerator);
       }
     } catch (err) {
       if ((err as Error)?.name !== 'AbortError') {
@@ -344,6 +446,7 @@ export function usePipeline() {
   };
 
   const handleStop = () => {
+    generationRef.current++;  // Kill any queued messages
     stopPipeline();
     setStopped(true);
     setStatus('Paused');
@@ -354,12 +457,16 @@ export function usePipeline() {
     if (!sessionId) return;
     stoppedRef.current = false;
     setStopped(false);
+    // Reset throttle counters on resume
+    autopilotBatchCountRef.current = 0;
+    autopilotMsgCountRef.current = 0;
     setStatus('Bots chatting...');
     addMsg('system', 'Resumed!');
-    runPipeline(sessionId);
+    runAutopilot(sessionId);
   };
 
   const handleEnd = () => {
+    generationRef.current++;  // Kill any queued messages
     stopPipeline();
     stoppedRef.current = false;
     initDoneRef.current = false;
@@ -380,6 +487,9 @@ export function usePipeline() {
     setSessionId(null);
     setTurnCount(0);
     initDoneRef.current = false;
+    nextGeneratorRef.current = 'claude';
+    autopilotBatchCountRef.current = 0;
+    autopilotMsgCountRef.current = 0;
     resetSettingsInit();
     return null;
   };
@@ -400,6 +510,7 @@ export function usePipeline() {
     setPersonality,
     gptCountdown,
     claudeCountdown,
+    settingsDelay,
     gptMotivation,
     claudeMotivation,
     // Refs
