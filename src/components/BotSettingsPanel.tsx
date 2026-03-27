@@ -45,7 +45,7 @@ export default function BotSettingsPanel({
   const cfg = BOT_CONFIG[bot];
 
   return (
-    <div className="hidden lg:flex flex-col gap-2 pt-12 w-52 shrink-0 animate-fade-in">
+    <div className="flex flex-col gap-2 pt-2 lg:pt-12 w-full lg:w-52 shrink-0 animate-fade-in">
       <div className="flex items-center justify-between mb-0.5">
         <p className={`text-xs ${cfg.colorClass} tracking-wide font-normal`}>{cfg.label}</p>
         {onRandomize && (
