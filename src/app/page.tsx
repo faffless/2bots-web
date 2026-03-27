@@ -126,7 +126,7 @@ export default function Home() {
 
   return (
     <div className="h-screen h-[100dvh] bg-bot-bg flex flex-col items-center overflow-hidden">
-      <div className="w-full flex justify-center gap-4 px-2 md:px-6">
+      <div className="w-full h-full flex justify-center gap-4 px-2 md:px-6">
 
         {/* LEFT PANEL: ChatGPT — slide-in overlay */}
         {pipeline.started && pipeline.sessionId && (
@@ -161,8 +161,8 @@ export default function Home() {
         )}
 
         {/* CHAT COLUMN */}
-        <div className="w-full max-w-[620px] flex flex-col h-full md:h-auto md:my-4">
-          <div className="flex flex-col flex-1 md:rounded-xl md:border md:border-white/5 overflow-hidden bg-bot-bg md:max-h-[calc(100vh-32px)] md:min-h-[600px]">
+        <div className="w-full max-w-[620px] flex flex-col h-full md:my-4 md:max-h-[calc(100vh-32px)]">
+          <div className="flex flex-col flex-1 min-h-0 md:rounded-xl md:border md:border-white/5 overflow-hidden bg-bot-bg md:min-h-[600px]">
 
             {/* Header — single row: ChatGPT | status | Format about Topic | Claude */}
             <div className="bg-bot-panel border-b border-white/5 shrink-0 px-3 py-1.5" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
@@ -170,7 +170,7 @@ export default function Home() {
                 <button
                   onClick={() => pipeline.started && setShowGptSettings(!showGptSettings)}
                   className={`text-bot-gpt font-normal text-xs tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
-                >⚙ ChatGPT</button>
+                ><span className="hidden md:inline">⚙ ChatGPT</span><span className="md:hidden">⚙</span></button>
 
                 {pipeline.started && !isStartingUp && (
                   <span className="text-[9px] text-bot-muted truncate max-w-[90px] shrink-0">{pipeline.status}</span>
@@ -198,7 +198,7 @@ export default function Home() {
                 <button
                   onClick={() => pipeline.started && setShowClaudeSettings(!showClaudeSettings)}
                   className={`text-bot-claude font-normal text-xs tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
-                >Claude ⚙</button>
+                ><span className="hidden md:inline">Claude ⚙</span><span className="md:hidden">⚙</span></button>
               </div>
             </div>
 
