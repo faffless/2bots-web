@@ -140,6 +140,14 @@ export const PERSONALITY_OPTIONS: Record<string, string> = {
   grumpy:        'Grumpy',
   flirty:        'Flirty',
   poetic:        'Poetic',
+  analytical:    'Analytical',
+  confident:     'Confident',
+  empathetic:    'Empathetic',
+  pragmatic:     'Pragmatic',
+  skeptical:     'Skeptical',
+  witty:         'Witty',
+  patient:       'Patient',
+  provocative:   'Provocative',
 };
 
 export const QUIRK_OPTIONS: Record<string, string> = {
@@ -161,6 +169,14 @@ export const QUIRK_OPTIONS: Record<string, string> = {
   existential:     'Existential crisis',
   dad_jokes:       'Dad jokes',
   time_traveller:  'Time traveller',
+  devils_advocate: "Devil's advocate",
+  storyteller:     'Uses stories to explain',
+  data_driven:     'Cites stats and data',
+  contrarian:      'Contrarian',
+  mentor:          'Mentor / coach',
+  perfectionist:   'Perfectionist',
+  big_picture:     'Big picture thinker',
+  detail_oriented: 'Detail oriented',
 };
 
 export const STRENGTH_LABELS = ['Off', 'Subtle', 'Strong', 'Unhinged'];

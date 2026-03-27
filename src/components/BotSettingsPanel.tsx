@@ -33,19 +33,26 @@ interface BotSettingsPanelProps {
   setCustom: (v: string) => void;
   customTrait: string;
   setCustomTrait: (v: string) => void;
+  onRandomize?: () => void;
 }
 
 export default function BotSettingsPanel({
   bot, personality, setPersonality, personalityStrength, setPersonalityStrength,
   voice, setVoice, ttsSpeed, setTtsSpeed, quirks, toggleQuirk,
   responseLength, setResponseLength, custom, setCustom,
-  customTrait, setCustomTrait,
+  customTrait, setCustomTrait, onRandomize,
 }: BotSettingsPanelProps) {
   const cfg = BOT_CONFIG[bot];
 
   return (
     <div className="hidden lg:flex flex-col gap-2 pt-12 w-52 shrink-0 animate-fade-in">
-      <p className={`text-xs ${cfg.colorClass} tracking-wide font-normal mb-0.5`}>{cfg.label}</p>
+      <div className="flex items-center justify-between mb-0.5">
+        <p className={`text-xs ${cfg.colorClass} tracking-wide font-normal`}>{cfg.label}</p>
+        {onRandomize && (
+          <button onClick={onRandomize} title="Randomize settings"
+            className="text-sm text-bot-muted hover:text-bot-text transition">🎲</button>
+        )}
+      </div>
 
       {/* 1. Personality dropdown */}
       <select value={personality} onChange={(e) => setPersonality(e.target.value)}

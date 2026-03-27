@@ -17,6 +17,9 @@ import {
   MODES_LANDING,
   MODES_CONVERSATION,
   CONVERSATION_IDEAS,
+  PERSONALITY_OPTIONS,
+  QUIRK_OPTIONS,
+  VOICE_OPTIONS,
   getPersonalityLabel,
 } from '@/lib/constants';
 
@@ -38,6 +41,40 @@ export default function Home() {
 
   const pipeline = usePipeline();
   const settings = useSettings(pipeline.sessionId, pipeline.onSettingsChanged);
+
+  // Randomize helpers
+  const randomizeFormat = () => {
+    const modes = pipeline.started ? MODES_CONVERSATION : MODES_LANDING;
+    const keys = Object.keys(modes).filter(k => k !== 'random' && k !== 'mix');
+    settings.setInteractionStyle(keys[Math.floor(Math.random() * keys.length)]);
+  };
+
+  const randomizeBot = (bot: 'gpt' | 'claude') => {
+    const pKeys = Object.keys(PERSONALITY_OPTIONS).filter(k => k !== 'default');
+    const personality = pKeys[Math.floor(Math.random() * pKeys.length)];
+    const strength = Math.floor(Math.random() * 4);
+    const qKeys = Object.keys(QUIRK_OPTIONS);
+    const numQuirks = Math.floor(Math.random() * 3); // 0-2 quirks
+    const shuffled = [...qKeys].sort(() => Math.random() - 0.5);
+    const selectedQuirks = shuffled.slice(0, numQuirks);
+    const vKeys = Object.keys(VOICE_OPTIONS);
+    const voice = vKeys[Math.floor(Math.random() * vKeys.length)];
+
+    if (bot === 'gpt') {
+      settings.setGptPersonality(personality);
+      settings.setGptPersonalityStrength(strength);
+      settings.setGptVoice(voice);
+      // Clear existing quirks then add new ones
+      settings.gptQuirks.forEach(q => settings.toggleQuirk('gpt', q));
+      selectedQuirks.forEach(q => settings.toggleQuirk('gpt', q));
+    } else {
+      settings.setClaudePersonality(personality);
+      settings.setClaudePersonalityStrength(strength);
+      settings.setClaudeVoice(voice);
+      settings.claudeQuirks.forEach(q => settings.toggleQuirk('claude', q));
+      selectedQuirks.forEach(q => settings.toggleQuirk('claude', q));
+    }
+  };
 
   const speech = useSpeechInput({
     sessionId: pipeline.sessionId,
@@ -114,6 +151,7 @@ export default function Home() {
                 setCustom={settings.setGptCustom}
                 customTrait={settings.gptCustomTrait}
                 setCustomTrait={settings.setGptCustomTrait}
+                onRandomize={() => randomizeBot('gpt')}
               />
             </div>
           </div>
@@ -136,6 +174,8 @@ export default function Home() {
                 )}
 
                 <div className="flex items-center gap-1 shrink-0">
+                  <button onClick={randomizeFormat} title="Random format"
+                    className="text-[10px] text-bot-muted hover:text-bot-text transition px-0.5">🎲</button>
                   <select value={settings.interactionStyle} onChange={(e) => settings.setInteractionStyle(e.target.value)}
                     className="bg-bot-bg border border-white/10 rounded px-1 py-0.5 text-bot-text text-[10px] outline-none">
                     {Object.entries(pipeline.started ? MODES_CONVERSATION : MODES_LANDING).map(([k, v]) => (
@@ -167,7 +207,7 @@ export default function Home() {
                     2BOTS
                   </h1>
                   <p className="text-base text-bot-muted mb-10 font-normal">
-                    Claude &amp; ChatGPT
+                    ChatGPT &amp; Claude
                   </p>
 
                   <div className="flex items-center gap-3 w-full max-w-sm mb-1">
@@ -302,6 +342,7 @@ export default function Home() {
                 setCustom={settings.setClaudeCustom}
                 customTrait={settings.claudeCustomTrait}
                 setCustomTrait={settings.setClaudeCustomTrait}
+                onRandomize={() => randomizeBot('claude')}
               />
             </div>
           </div>
