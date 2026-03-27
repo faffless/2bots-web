@@ -118,6 +118,8 @@ export default function Home() {
     if (result === 'pricing') setShowPricing(true);
   };
 
+  const isStartingUp = pipeline.loading && !pipeline.messages.some(m => m.speaker === 'gpt' || m.speaker === 'claude');
+
   if (showPricing) {
     return <PricingOverlay onClose={() => setShowPricing(false)} />;
   }
@@ -170,7 +172,7 @@ export default function Home() {
                   className={`text-bot-gpt font-normal text-xs tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
                 >⚙ ChatGPT</button>
 
-                {pipeline.started && (
+                {pipeline.started && !isStartingUp && (
                   <span className="text-[9px] text-bot-muted truncate max-w-[90px] shrink-0">{pipeline.status}</span>
                 )}
 
@@ -189,7 +191,7 @@ export default function Home() {
                     value={settings.topic}
                     onChange={(e) => settings.setTopic(e.target.value)}
                     placeholder="Random"
-                    className="bg-bot-bg border border-white/10 rounded px-1 py-0.5 text-bot-text text-[10px] outline-none w-20 placeholder:text-bot-muted/50 focus:border-bot-user transition"
+                    className="bg-bot-bg border border-white/10 rounded px-1 py-0.5 text-bot-text text-[10px] outline-none w-20 placeholder:text-bot-text focus:border-bot-user transition"
                   />
                 </div>
 
@@ -230,13 +232,15 @@ export default function Home() {
                 </div>
               )}
 
-              {pipeline.loading && !pipeline.messages.some(m => m.speaker === 'gpt' || m.speaker === 'claude') && (
+              {isStartingUp && (
                 <StartupLoader />
               )}
 
-              {pipeline.started && pipeline.messages.map((msg) => (
-                <ChatBubble key={msg.id} msg={msg} />
-              ))}
+              {pipeline.started && pipeline.messages
+                .filter(msg => !(isStartingUp && msg.speaker === 'system'))
+                .map((msg) => (
+                  <ChatBubble key={msg.id} msg={msg} />
+                ))}
               <div ref={pipeline.chatEndRef} />
             </div>
 

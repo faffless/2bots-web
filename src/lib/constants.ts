@@ -76,9 +76,8 @@ export const VOICE_OPTIONS: Record<string, string> = {
   shimmer: 'Shimmer (Bright Female)',
 };
 
-// Modes shown on landing page (includes Random + Mix)
+// Modes shown on landing page (dice button replaces Random)
 export const MODES_LANDING: Record<string, string> = {
-  random:          'Random',
   mix:             'Mix',
   conversation:    'Conversation',
   debate:          'Debate',
