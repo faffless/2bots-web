@@ -1,18 +1,51 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-const STAGES = [
-  { text: 'Connecting to ChatGPT...', delay: 0 },
-  { text: 'Connecting to Claude...', delay: 1500 },
-  { text: 'Setting up the conversation...', delay: 3000 },
+const SETUP_LINES = [
+  'Warming up the microphones...',
+  'Bribing the bots to behave...',
+  'Flipping a coin for who talks first...',
+  'Loading controversial opinions...',
+  'Stretching vocal cords...',
+  'Deciding who gets the last word...',
+  'Calibrating sarcasm levels...',
+  'Shuffling conversation topics...',
+  'Teaching the bots small talk...',
+  'Polishing hot takes...',
+  'Rehearsing dramatic pauses...',
+  'Brewing some strong opinions...',
+  'Clearing throats...',
+  'Loosening up the banter...',
+  'Picking a fight topic...',
+  'Tuning the chaos engine...',
+  'Preparing unsolicited advice...',
+  'Loading interruption protocol...',
+  'Synchronising egos...',
+  'Placing bets on who wins...',
 ];
 
 const MAX_DURATION = 50000; // 50s worst case (cold start)
 
+function pickRandom3(): string[] {
+  const shuffled = [...SETUP_LINES].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 3);
+}
+
 export default function StartupLoader() {
   const [elapsed, setElapsed] = useState(0);
   const [stageIdx, setStageIdx] = useState(0);
+
+  // Pick 3 random setup lines once on mount (no repeats)
+  const funnyLines = useMemo(() => pickRandom3(), []);
+
+  const stages = useMemo(() => [
+    { text: 'Connecting to ChatGPT...', delay: 0 },
+    { text: 'Connecting to Claude...', delay: 1500 },
+    { text: funnyLines[0], delay: 3000 },
+    { text: funnyLines[1], delay: 23000 },
+    { text: funnyLines[2], delay: 43000 },
+  ], [funnyLines]);
 
   useEffect(() => {
     const start = Date.now();
@@ -23,11 +56,11 @@ export default function StartupLoader() {
   }, []);
 
   useEffect(() => {
-    const timers = STAGES.slice(1).map((stage, i) =>
+    const timers = stages.slice(1).map((stage, i) =>
       setTimeout(() => setStageIdx(i + 1), stage.delay)
     );
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [stages]);
 
   // Ease-out: fast at first, slows down. Never quite reaches 100%.
   const raw = Math.min(elapsed / MAX_DURATION, 1);
@@ -37,7 +70,7 @@ export default function StartupLoader() {
   return (
     <div className="flex flex-col items-center justify-center py-12 px-6 animate-fade-in">
       <p className="text-xs text-bot-muted mb-4 transition-opacity duration-500">
-        {STAGES[stageIdx].text}
+        {stages[stageIdx].text}
       </p>
 
       {/* Progress bar */}
