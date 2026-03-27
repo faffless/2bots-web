@@ -191,7 +191,7 @@ export default function Home() {
                     value={settings.topic}
                     onChange={(e) => settings.setTopic(e.target.value)}
                     placeholder="Random"
-                    className="bg-bot-bg border border-white/10 rounded px-1 py-0.5 text-bot-text text-[10px] outline-none w-20 placeholder:text-bot-text focus:border-bot-user transition"
+                    className="bg-bot-bg border border-white/10 rounded px-1 py-0.5 text-bot-text text-[10px] outline-none w-20 placeholder:text-bot-muted/50 focus:border-bot-user transition"
                   />
                 </div>
 
