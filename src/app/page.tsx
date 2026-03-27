@@ -125,7 +125,7 @@ export default function Home() {
   }
 
   return (
-    <div className="h-screen h-[100dvh] bg-bot-bg flex flex-col items-center overflow-hidden">
+    <div className="bg-bot-bg flex flex-col items-center overflow-hidden" style={{ height: '100dvh' }}>
       <div className="w-full h-full flex justify-center gap-4 px-2 md:px-6">
 
         {/* LEFT PANEL: ChatGPT — slide-in overlay */}
