@@ -1,6 +1,13 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  interactiveWidget: 'resizes-content',
+};
+
 export const metadata: Metadata = {
   title: '2BOTS — Claude & ChatGPT Together',
   description: 'Talk to Claude and ChatGPT at the same time. They help you together, debate each other, and keep each other honest.',

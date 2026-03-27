@@ -60,7 +60,13 @@ export function usePipeline() {
   const [settingsDelay, setSettingsDelay] = useState<number | null>(null);
 
   useEffect(() => { sessionRef.current = sessionId; }, [sessionId]);
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => {
+    // Scroll within the chat container only, not the whole page
+    const el = chatEndRef.current;
+    if (el?.parentElement) {
+      el.parentElement.scrollTop = el.parentElement.scrollHeight;
+    }
+  }, [messages]);
 
   const addMsg = useCallback((speaker: ChatMsg['speaker'], text: string) => {
     const msg: ChatMsg = { id: nextId(), speaker, text };
