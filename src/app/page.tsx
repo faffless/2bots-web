@@ -125,7 +125,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-bot-bg flex flex-col items-center">
+    <div className="h-screen h-[100dvh] bg-bot-bg flex flex-col items-center overflow-hidden">
       <div className="w-full flex justify-center gap-4 px-2 md:px-6">
 
         {/* LEFT PANEL: ChatGPT — slide-in overlay */}
@@ -161,8 +161,8 @@ export default function Home() {
         )}
 
         {/* CHAT COLUMN */}
-        <div className="w-full max-w-[620px] flex flex-col min-h-screen md:min-h-0 md:my-4">
-          <div className="flex flex-col flex-1 md:rounded-xl md:border md:border-white/5 md:overflow-hidden bg-bot-bg md:max-h-[calc(100vh-32px)] md:min-h-[600px]">
+        <div className="w-full max-w-[620px] flex flex-col h-full md:h-auto md:my-4">
+          <div className="flex flex-col flex-1 md:rounded-xl md:border md:border-white/5 overflow-hidden bg-bot-bg md:max-h-[calc(100vh-32px)] md:min-h-[600px]">
 
             {/* Header — single row: ChatGPT | status | Format about Topic | Claude */}
             <div className="bg-bot-panel border-b border-white/5 shrink-0 px-3 py-1.5" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
