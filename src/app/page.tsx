@@ -142,12 +142,12 @@ export default function Home() {
                       <option key={k} value={k}>{v}</option>
                     ))}
                   </select>
-                  <span className="text-[9px] text-bot-muted">about</span>
+                  <span className="text-[9px] text-bot-muted">on</span>
                   <input
                     type="text"
                     value={settings.topic}
                     onChange={(e) => settings.setTopic(e.target.value)}
-                    placeholder="anything"
+                    placeholder="Random"
                     className="bg-bot-bg border border-white/10 rounded px-1 py-0.5 text-bot-text text-[10px] outline-none w-20 placeholder:text-bot-muted/50 focus:border-bot-user transition"
                   />
                 </div>
