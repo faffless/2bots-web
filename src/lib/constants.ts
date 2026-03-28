@@ -16,7 +16,7 @@ export type Round = {
 };
 
 // ---- Limits ----
-export const FREE_SESSION_LIMIT = 10;
+export const FREE_SESSION_LIMIT = 9999; // effectively unlimited until app gains traction
 export const MAX_TURNS_PER_SESSION = 50;
 
 // ---- Personality slider ----
