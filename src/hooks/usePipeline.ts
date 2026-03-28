@@ -436,22 +436,21 @@ export function usePipeline() {
       const fillerCtrl = freshAbort();
       const batchGenerator = nextGeneratorRef.current;
 
-      // ---- CHAT MODE ---- Fire autopilot prefetch immediately (while bridge plays)
+      // ---- CHAT MODE ---- Play bridge/single-bot response
+      runningRef.current = true;
+      stoppedRef.current = false;
+      await streamAndPlayFiller(sessionId, text, fillerCtrl);
+
+      // ---- CHAT MODE ---- Bridge done — NOW prefetch autopilot batch (includes bridge context)
       const apiBase = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
-      dlog('chat_mode', `Prefetching autopilot batch via ${batchGenerator} while bridge plays`);
+      dlog('chat_mode', `Bridge done — prefetching autopilot batch via ${batchGenerator}`);
       fetch(`${apiBase}/autopilot/prefetch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId, who_generates: batchGenerator }),
       }).catch(() => {});
 
-      // ---- CHAT MODE ---- Play bridge/single-bot response
-      runningRef.current = true;
-      stoppedRef.current = false;
-      await streamAndPlayFiller(sessionId, text, fillerCtrl);
-
-      // ---- CHAT MODE ---- Bridge done — autopilot batch should be ready or nearly ready
-      // Short wait then launch autopilot (batch may already be cached from prefetch)
+      // ---- CHAT MODE ---- Short wait then launch autopilot (batch may be ready from prefetch)
       runningRef.current = true;
       stoppedRef.current = false;
 
