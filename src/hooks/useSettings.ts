@@ -194,12 +194,20 @@ export function useSettings(
       dlog('settings', `Pushing update for ${bots.join(', ') || 'unknown'}`);
       try {
         await apiUpdateSettings(sid, getSettings());
-        dlog('settings', 'Update confirmed by backend');
-        // Flash green "applied" status
-        if (gptChanged) flashApplied(setGptSettingStatus, gptAppliedTimerRef);
-        if (claudeChanged) flashApplied(setClaudeSettingStatus, claudeAppliedTimerRef);
-        if (formatChanged) flashApplied(setFormatSettingStatus, formatAppliedTimerRef);
-        if (topicChanged) flashApplied(setTopicSettingStatus, topicAppliedTimerRef);
+        dlog('settings', 'Update confirmed by backend — waiting ~40s for effect');
+        // Stay amber for 40 seconds (worst case: current batch finishes playing),
+        // then flash green for 3 seconds
+        const delayThenFlash = (
+          setter: (v: SettingStatus) => void,
+          timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>,
+        ) => {
+          if (timerRef.current) clearTimeout(timerRef.current);
+          timerRef.current = setTimeout(() => flashApplied(setter, timerRef), 40000);
+        };
+        if (gptChanged) delayThenFlash(setGptSettingStatus, gptAppliedTimerRef);
+        if (claudeChanged) delayThenFlash(setClaudeSettingStatus, claudeAppliedTimerRef);
+        if (formatChanged) delayThenFlash(setFormatSettingStatus, formatAppliedTimerRef);
+        if (topicChanged) delayThenFlash(setTopicSettingStatus, topicAppliedTimerRef);
       } catch (err) {
         console.error('Settings update failed:', err);
         dlog('settings', `Update FAILED: ${err}`);
