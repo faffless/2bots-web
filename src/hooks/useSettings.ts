@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiUpdateSettings } from '@/lib/api';
 import { dlog } from '@/lib/constants';
+
+export type SettingStatus = 'queued' | 'applied' | null;
 
 export interface SettingsState {
   gptVoice: string;
@@ -49,6 +51,10 @@ export interface SettingsActions {
   toggleQuirk: (bot: 'gpt' | 'claude', quirk: string) => void;
   getSettings: () => Record<string, unknown>;
   resetSettingsInit: () => void;
+  gptSettingStatus: SettingStatus;
+  claudeSettingStatus: SettingStatus;
+  formatSettingStatus: SettingStatus;
+  topicSettingStatus: SettingStatus;
 }
 
 export function useSettings(
@@ -81,15 +87,27 @@ export function useSettings(
   const sessionIdRef = useRef(sessionId);
   sessionIdRef.current = sessionId;
 
+  // Traffic light status for settings feedback
+  const [gptSettingStatus, setGptSettingStatus] = useState<SettingStatus>(null);
+  const [claudeSettingStatus, setClaudeSettingStatus] = useState<SettingStatus>(null);
+  const [formatSettingStatus, setFormatSettingStatus] = useState<SettingStatus>(null);
+  const [topicSettingStatus, setTopicSettingStatus] = useState<SettingStatus>(null);
+  const gptAppliedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const claudeAppliedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const formatAppliedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const topicAppliedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Simple change flags — set by wrapped setters, read + cleared by the debounced effect
   const gptChangedRef = useRef(false);
   const claudeChangedRef = useRef(false);
+  const formatChangedRef = useRef(false);
+  const topicChangedRef = useRef(false);
 
   // Wrap setters to tag which bot changed
   const setGptVoice = (v: string) => { gptChangedRef.current = true; _setGptVoice(v); };
   const setClaudeVoice = (v: string) => { claudeChangedRef.current = true; _setClaudeVoice(v); };
-  const setInteractionStyle = (v: string) => { gptChangedRef.current = true; claudeChangedRef.current = true; _setInteractionStyle(v); };
-  const setTopic = (v: string) => { gptChangedRef.current = true; claudeChangedRef.current = true; _setTopic(v); };
+  const setInteractionStyle = (v: string) => { gptChangedRef.current = true; claudeChangedRef.current = true; formatChangedRef.current = true; _setInteractionStyle(v); };
+  const setTopic = (v: string) => { gptChangedRef.current = true; claudeChangedRef.current = true; topicChangedRef.current = true; _setTopic(v); };
   const setGptResponseLength = (v: string) => { gptChangedRef.current = true; _setGptResponseLength(v); };
   const setClaudeResponseLength = (v: string) => { claudeChangedRef.current = true; _setClaudeResponseLength(v); };
   const setGptPersonality = (v: string) => { gptChangedRef.current = true; _setGptPersonality(v); };
@@ -130,6 +148,16 @@ export function useSettings(
     claude_tts_speed: claudeTtsSpeed,
   });
 
+  // Helper to show applied status for 3 seconds then clear
+  const flashApplied = useCallback((
+    setter: (v: SettingStatus) => void,
+    timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>,
+  ) => {
+    setter('applied');
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setter(null), 3000);
+  }, []);
+
   // Hot-swap: push to backend on change (debounced API call, instant countdown)
   useEffect(() => {
     if (!sessionIdRef.current) return;
@@ -141,6 +169,16 @@ export function useSettings(
     if (claudeChangedRef.current) bots.push('claude');
     if (bots.length > 0) onSettingsChanged(bots);
 
+    // Show amber "queued" status immediately
+    const gptChanged = gptChangedRef.current;
+    const claudeChanged = claudeChangedRef.current;
+    const formatChanged = formatChangedRef.current;
+    const topicChanged = topicChangedRef.current;
+    if (gptChanged) setGptSettingStatus('queued');
+    if (claudeChanged) setClaudeSettingStatus('queued');
+    if (formatChanged) setFormatSettingStatus('queued');
+    if (topicChanged) setTopicSettingStatus('queued');
+
     // Debounce the API call
     if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
     settingsTimerRef.current = setTimeout(async () => {
@@ -150,14 +188,26 @@ export function useSettings(
       // Clear change flags after API push
       gptChangedRef.current = false;
       claudeChangedRef.current = false;
+      formatChangedRef.current = false;
+      topicChangedRef.current = false;
 
       dlog('settings', `Pushing update for ${bots.join(', ') || 'unknown'}`);
       try {
         await apiUpdateSettings(sid, getSettings());
         dlog('settings', 'Update confirmed by backend');
+        // Flash green "applied" status
+        if (gptChanged) flashApplied(setGptSettingStatus, gptAppliedTimerRef);
+        if (claudeChanged) flashApplied(setClaudeSettingStatus, claudeAppliedTimerRef);
+        if (formatChanged) flashApplied(setFormatSettingStatus, formatAppliedTimerRef);
+        if (topicChanged) flashApplied(setTopicSettingStatus, topicAppliedTimerRef);
       } catch (err) {
         console.error('Settings update failed:', err);
         dlog('settings', `Update FAILED: ${err}`);
+        // Clear statuses on failure
+        if (gptChanged) setGptSettingStatus(null);
+        if (claudeChanged) setClaudeSettingStatus(null);
+        if (formatChanged) setFormatSettingStatus(null);
+        if (topicChanged) setTopicSettingStatus(null);
       }
     }, 300);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -198,5 +248,9 @@ export function useSettings(
     toggleQuirk,
     getSettings,
     resetSettingsInit,
+    gptSettingStatus,
+    claudeSettingStatus,
+    formatSettingStatus,
+    topicSettingStatus,
   };
 }

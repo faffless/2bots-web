@@ -148,12 +148,11 @@ export default function Home() {
                 setTtsSpeed={settings.setGptTtsSpeed}
                 quirks={settings.gptQuirks}
                 toggleQuirk={settings.toggleQuirk}
-                responseLength={settings.gptResponseLength}
-                setResponseLength={settings.setGptResponseLength}
                 custom={settings.gptCustom}
                 setCustom={settings.setGptCustom}
                 customTrait={settings.gptCustomTrait}
                 setCustomTrait={settings.setGptCustomTrait}
+                settingStatus={settings.gptSettingStatus}
                 onRandomize={() => randomizeBot('gpt')}
               />
             </div>
@@ -180,7 +179,13 @@ export default function Home() {
                   <button onClick={randomizeFormat} title="Random format"
                     className="text-[10px] text-bot-muted hover:text-bot-text transition px-0.5">🎲</button>
                   <select value={settings.interactionStyle} onChange={(e) => settings.setInteractionStyle(e.target.value)}
-                    className="bg-bot-bg border border-white/10 rounded px-1 py-0.5 text-bot-text text-[10px] outline-none">
+                    className={`bg-bot-bg border rounded px-1 py-0.5 text-bot-text text-[10px] outline-none transition-all duration-300 ${
+                      settings.formatSettingStatus === 'queued'
+                        ? 'border-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]'
+                        : settings.formatSettingStatus === 'applied'
+                          ? 'border-green-400 shadow-[0_0_6px_rgba(74,222,128,0.4)]'
+                          : 'border-white/10'
+                    }`}>
                     {Object.entries(pipeline.started ? MODES_CONVERSATION : MODES_LANDING).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
@@ -191,7 +196,13 @@ export default function Home() {
                     value={settings.topic}
                     onChange={(e) => settings.setTopic(e.target.value)}
                     placeholder="Random"
-                    className="bg-bot-bg border border-white/10 rounded px-1 py-0.5 text-bot-text text-[10px] outline-none w-20 placeholder:text-bot-muted/50 focus:border-bot-user transition"
+                    className={`bg-bot-bg border rounded px-1 py-0.5 text-bot-text text-[10px] outline-none w-20 placeholder:text-bot-muted/50 transition-all duration-300 ${
+                      settings.topicSettingStatus === 'queued'
+                        ? 'border-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]'
+                        : settings.topicSettingStatus === 'applied'
+                          ? 'border-green-400 shadow-[0_0_6px_rgba(74,222,128,0.4)]'
+                          : 'border-white/10 focus:border-bot-user'
+                    }`}
                   />
                 </div>
 
@@ -345,12 +356,11 @@ export default function Home() {
                 setTtsSpeed={settings.setClaudeTtsSpeed}
                 quirks={settings.claudeQuirks}
                 toggleQuirk={settings.toggleQuirk}
-                responseLength={settings.claudeResponseLength}
-                setResponseLength={settings.setClaudeResponseLength}
                 custom={settings.claudeCustom}
                 setCustom={settings.setClaudeCustom}
                 customTrait={settings.claudeCustomTrait}
                 setCustomTrait={settings.setClaudeCustomTrait}
+                settingStatus={settings.claudeSettingStatus}
                 onRandomize={() => randomizeBot('claude')}
               />
             </div>

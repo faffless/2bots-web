@@ -7,14 +7,6 @@ import {
   STRENGTH_LABELS,
 } from '@/lib/constants';
 
-const RESPONSE_LENGTH_OPTIONS = [
-  { key: 'avg_10', label: '~10' },
-  { key: 'avg_20', label: '~20' },
-  { key: 'avg_30', label: '~30' },
-  { key: 'avg_40', label: '~40' },
-  { key: 'avg_50', label: '~50' },
-] as const;
-
 interface BotSettingsPanelProps {
   bot: Bot;
   personality: string;
@@ -27,20 +19,18 @@ interface BotSettingsPanelProps {
   setTtsSpeed: (v: number) => void;
   quirks: string[];
   toggleQuirk: (bot: Bot, quirk: string) => void;
-  responseLength: string;
-  setResponseLength: (v: string) => void;
   custom: string;
   setCustom: (v: string) => void;
   customTrait: string;
   setCustomTrait: (v: string) => void;
+  settingStatus?: 'queued' | 'applied' | null;
   onRandomize?: () => void;
 }
 
 export default function BotSettingsPanel({
   bot, personality, setPersonality, personalityStrength, setPersonalityStrength,
   voice, setVoice, ttsSpeed, setTtsSpeed, quirks, toggleQuirk,
-  responseLength, setResponseLength, custom, setCustom,
-  customTrait, setCustomTrait, onRandomize,
+  custom, setCustom, customTrait, setCustomTrait, settingStatus, onRandomize,
 }: BotSettingsPanelProps) {
   const cfg = BOT_CONFIG[bot];
 
@@ -131,21 +121,6 @@ export default function BotSettingsPanel({
           className="w-full h-1" style={{ accentColor: cfg.accentHex }} />
       </div>
 
-      {/* 6. Response length */}
-      <div className="mt-0.5">
-        <span className="text-[9px] text-bot-muted block mb-0.5">Response length</span>
-        <div className="grid grid-cols-5 gap-1">
-          {RESPONSE_LENGTH_OPTIONS.map(({ key, label }) => (
-            <button key={key} onClick={() => setResponseLength(key)}
-              className={`text-[8px] py-1 rounded transition-colors ${
-                responseLength === key ? cfg.btnActive : 'bg-white/5 text-bot-muted hover:bg-white/10'
-              }`}>
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* 7. Voice */}
       <div className="mt-0.5">
         <span className="text-[9px] text-bot-muted block mb-0.5">Voice</span>
@@ -171,6 +146,17 @@ export default function BotSettingsPanel({
           <span className="text-[9px]">🐇</span>
         </div>
       </div>
+
+      {/* Setting update status */}
+      {settingStatus && (
+        <div className={`mt-2 text-[10px] text-center py-1 rounded transition-all duration-300 ${
+          settingStatus === 'queued'
+            ? 'text-amber-400 bg-amber-400/10 border border-amber-400/30'
+            : 'text-green-400 bg-green-400/10 border border-green-400/30'
+        }`}>
+          {settingStatus === 'queued' ? 'Setting update queued' : 'Setting update applied'}
+        </div>
+      )}
     </div>
   );
 }
