@@ -319,6 +319,12 @@ export function usePipeline() {
             setStatus(speaker === 'gpt' ? 'ChatGPT speaking...' : 'Claude speaking...');
             autopilotMsgCountRef.current++;
 
+            // Show countdown to next conclusion opportunity
+            const textEvent = event as Record<string, unknown>;
+            if (textEvent.msgs_until_review) {
+              addMsg('system', `Conclusion opportunity in ${textEvent.msgs_until_review} messages`);
+            }
+
             if (speaker === 'gpt' && gptCountdownRef.current > 0) {
               gptCountdownRef.current--;
               setGptCountdown(gptCountdownRef.current || null);
@@ -326,6 +332,15 @@ export function usePipeline() {
             if (speaker === 'claude' && claudeCountdownRef.current > 0) {
               claudeCountdownRef.current--;
               setClaudeCountdown(claudeCountdownRef.current || null);
+            }
+          } else if (event.type === 'research_status') {
+            const statusEvent = event as Record<string, unknown>;
+            if (statusEvent.event === 'threshold_reached') {
+              addMsg('system', '⚡ Conclusion threshold reached');
+            } else if (statusEvent.event === 'conclusion_reached') {
+              addMsg('system', `✓ Conclusion ${statusEvent.conclusion_num} reached`);
+            } else if (statusEvent.event === 'conclusion_rejected') {
+              addMsg('system', '✗ Conclusion not reached — continuing research');
             }
           } else if (event.type === 'audio') {
             await playAudioBase64(event.audio_base64, event.mime_type);
