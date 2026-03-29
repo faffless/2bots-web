@@ -322,7 +322,7 @@ export function usePipeline() {
             // Show countdown to next conclusion opportunity
             const textEvent = event as Record<string, unknown>;
             if (textEvent.msgs_until_review) {
-              addMsg('system', `Conclusion opportunity in ${textEvent.msgs_until_review} messages`);
+              addMsg('system', `Next conclusion opportunity in ${textEvent.msgs_until_review} messages`);
             }
 
             if (speaker === 'gpt' && gptCountdownRef.current > 0) {
@@ -338,7 +338,9 @@ export function usePipeline() {
             if (statusEvent.event === 'threshold_reached') {
               addMsg('system', '⚡ Conclusion threshold reached');
             } else if (statusEvent.event === 'conclusion_reached') {
-              addMsg('system', `✓ Conclusion ${statusEvent.conclusion_num} reached`);
+              const conclusions = statusEvent.conclusions as string[];
+              const list = conclusions.map((c: string, i: number) => `${i + 1}. ${c}`).join(' | ');
+              addMsg('system', `✓ Conclusion ${statusEvent.conclusion_num} reached — ${list}`);
             } else if (statusEvent.event === 'conclusion_rejected') {
               addMsg('system', '✗ Conclusion not reached — continuing research');
             }
