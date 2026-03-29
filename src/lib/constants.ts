@@ -85,17 +85,10 @@ export const MODES_LANDING: Record<string, string> = {
   bedtime_story:   'Storytime',
   comedy:          'Comedy',
   interview:       'Interview',
-  philosophy:      'Philosophy',
-  movie_dialogue:  'Movie Dialogue',
   research:        'Research',
   game:            'Game',
-  problem_solving: 'Problem Solving',
-  brainstorming:   'Brainstorming',
   teach_me:        'Teach Me',
   advice:          'Advice',
-  decision_help:   'Decision Help',
-  designing:       'Designing',
-  weird:           'Weird',
 };
 
 // Modes shown during conversation (includes Mix, no Random)
@@ -107,18 +100,14 @@ export const MODES_CONVERSATION: Record<string, string> = {
   bedtime_story:   'Storytime',
   comedy:          'Comedy',
   interview:       'Interview',
-  philosophy:      'Philosophy',
-  movie_dialogue:  'Movie Dialogue',
   research:        'Research',
   game:            'Game',
-  problem_solving: 'Problem Solving',
-  brainstorming:   'Brainstorming',
   teach_me:        'Teach Me',
   advice:          'Advice',
-  decision_help:   'Decision Help',
-  designing:       'Designing',
-  weird:           'Weird',
 };
+
+// Modes that use ping-pong (genuine back-and-forth) instead of scripted batches
+export const PINGPONG_MODES = new Set(['research', 'debate', 'advice']);
 
 // Combined for backward compat
 export const MODES: Record<string, string> = { ...MODES_LANDING, ...MODES_CONVERSATION };

@@ -22,7 +22,7 @@ export type SSEEvent =
   | { type: 'audio'; speaker: 'gpt' | 'claude'; audio_base64: string; mime_type: string }
   | { type: 'motivations'; gpt: string; claude: string }
   | { type: 'done'; next_generator?: string; filler?: boolean }
-  | { type: 'research_status'; event: string; conclusion_num?: number };
+  | { type: 'research_status'; event: string; conclusion_num?: number; conclusions?: string[]; debate_score_gpt?: number; debate_score_claude?: number; round_winner?: string; mode?: string };
 
 export type SSECallback = (event: SSEEvent) => void | Promise<void>;
 
@@ -134,7 +134,7 @@ export function apiFillerStream(
   return streamPost('/filler/stream', { session_id: sessionId, user_text: userText }, onEvent, signal);
 }
 
-// ---- RESEARCH PING-PONG MODE ----
+// ---- PING-PONG MODE ----
 
 /** Research ping-pong — one bot responds genuinely (not scripted) */
 export function apiResearchStream(
@@ -155,7 +155,7 @@ export async function apiResearchDiscardPrefetch(sessionId: string): Promise<voi
   }).catch(() => {});
 }
 
-// ---- END RESEARCH PING-PONG MODE ----
+// ---- END PING-PONG MODE ----
 
 /** Hot-swap settings (voice, mode, etc.) for an existing session */
 export async function apiUpdateSettings(

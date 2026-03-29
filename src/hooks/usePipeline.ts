@@ -20,6 +20,7 @@ import {
   getSessionCount,
   incrementSessionCount,
   dlog,
+  PINGPONG_MODES,
 } from '@/lib/constants';
 
 export function usePipeline() {
@@ -51,8 +52,7 @@ export function usePipeline() {
   // Track total autopilot messages and batches for throttling
   const autopilotMsgCountRef = useRef(0);
   const autopilotBatchCountRef = useRef(0);
-  const MAX_AUTOPILOT_BATCHES = 6;
-  const MAX_AUTOPILOT_MESSAGES = 80;
+  // No batch/message limits — conversations run forever (rate limiting is on the backend)
   // Generation counter — bumped every time user sends a message.
   // Used to discard stale queued messages from old batches.
   const generationRef = useRef(0);
@@ -63,8 +63,9 @@ export function usePipeline() {
   const batchStartTimeRef = useRef(0);
   const batchMsgsPlayedRef = useRef(0);
   const [settingsDelay, setSettingsDelay] = useState<number | null>(null);
-  // ---- RESEARCH PING-PONG MODE ---- Track whether current session is research mode
-  const isResearchModeRef = useRef(false);
+  // ---- PING-PONG MODE ---- Track whether current session uses ping-pong (research, debate, advice)
+  const isPingPongModeRef = useRef(false);
+  const pingPongModeNameRef = useRef<string>('research');
 
   useEffect(() => { sessionRef.current = sessionId; }, [sessionId]);
   useEffect(() => {
@@ -251,22 +252,6 @@ export function usePipeline() {
     let batchNum = 0;
 
     while (runningRef.current && sessionRef.current === sid && !stoppedRef.current) {
-      // Throttle check
-      if (autopilotBatchCountRef.current >= MAX_AUTOPILOT_BATCHES) {
-        dlog('autopilot', `Batch limit reached (${MAX_AUTOPILOT_BATCHES}). Stopping.`);
-        addMsg('system', 'Conversation paused — batch limit reached. Hit GO to continue or NEW to start over.');
-        setStopped(true);
-        stoppedRef.current = true;
-        break;
-      }
-      if (autopilotMsgCountRef.current >= MAX_AUTOPILOT_MESSAGES) {
-        dlog('autopilot', `Message limit reached (${MAX_AUTOPILOT_MESSAGES}). Stopping.`);
-        addMsg('system', 'Conversation paused — message limit reached. Hit GO to continue or NEW to start over.');
-        setStopped(true);
-        stoppedRef.current = true;
-        break;
-      }
-
       try {
         batchNum++;
         dlog('autopilot', `Batch ${batchNum}: generating via ${whoGenerates}...`);
@@ -291,7 +276,7 @@ export function usePipeline() {
     runningRef.current = false;
   }, [freshAbort, streamAndPlayBatch, addMsg]);
 
-  // ---- RESEARCH PING-PONG MODE ----
+  // ---- PING-PONG MODE ----
   // Ping-pong loop: alternates between GPT and Claude, each responding genuinely.
   // Prefetch happens server-side. Each turn streams text+tts, then tells us who goes next.
   const runResearchPingPong = useCallback(async (sid: string, firstWho?: string) => {
@@ -299,7 +284,7 @@ export function usePipeline() {
     let who = firstWho || (Math.random() < 0.5 ? 'gpt' : 'claude');
 
     while (runningRef.current && sessionRef.current === sid && !stoppedRef.current) {
-      // ---- RESEARCH PING-PONG MODE ---- No message limit for research
+      // ---- PING-PONG MODE ---- No message limit for research
       // Research stops when 5 conclusions are reached (signaled by backend)
 
       try {
@@ -319,10 +304,14 @@ export function usePipeline() {
             setStatus(speaker === 'gpt' ? 'ChatGPT speaking...' : 'Claude speaking...');
             autopilotMsgCountRef.current++;
 
-            // Show countdown to next conclusion opportunity
+            // Show countdown to next review opportunity
             const textEvent = event as Record<string, unknown>;
             if (textEvent.msgs_until_review) {
-              addMsg('system', `Next conclusion opportunity in ${textEvent.msgs_until_review} messages`);
+              const m = pingPongModeNameRef.current;
+              const countdownLabel = m === 'debate' ? 'Next round judging'
+                : m === 'advice' ? 'Next action point opportunity'
+                : 'Next conclusion opportunity';
+              addMsg('system', `${countdownLabel} in ${textEvent.msgs_until_review} messages`);
             }
 
             if (speaker === 'gpt' && gptCountdownRef.current > 0) {
@@ -335,23 +324,50 @@ export function usePipeline() {
             }
           } else if (event.type === 'research_status') {
             const statusEvent = event as Record<string, unknown>;
+            const m = (statusEvent.mode as string) || pingPongModeNameRef.current;
             if (statusEvent.event === 'threshold_reached') {
-              addMsg('system', '⚡ Conclusion threshold reached');
+              const thresholdLabel = m === 'debate' ? 'Round judging threshold reached'
+                : m === 'advice' ? 'Action point threshold reached'
+                : 'Conclusion threshold reached';
+              addMsg('system', `⚡ ${thresholdLabel}`);
             } else if (statusEvent.event === 'conclusion_reached') {
-              const conclusions = statusEvent.conclusions as string[];
-              const list = conclusions.map((c: string, i: number) => `${i + 1}. ${c}`).join(' | ');
-              addMsg('system', `✓ Conclusion ${statusEvent.conclusion_num} reached — ${list}`);
+              if (m === 'debate') {
+                const winner = statusEvent.round_winner as string || '?';
+                const gptScore = statusEvent.debate_score_gpt as number || 0;
+                const claudeScore = statusEvent.debate_score_claude as number || 0;
+                addMsg('system', `✓ Round ${statusEvent.conclusion_num}: ${winner} wins (Score: ChatGPT ${gptScore} - Claude ${claudeScore})`);
+              } else if (m === 'advice') {
+                const conclusions = statusEvent.conclusions as string[];
+                const list = conclusions.map((c: string, i: number) => `${i + 1}. ${c}`).join(' | ');
+                addMsg('system', `✓ Action point ${statusEvent.conclusion_num} agreed — ${list}`);
+              } else {
+                const conclusions = statusEvent.conclusions as string[];
+                const list = conclusions.map((c: string, i: number) => `${i + 1}. ${c}`).join(' | ');
+                addMsg('system', `✓ Conclusion ${statusEvent.conclusion_num} reached — ${list}`);
+              }
             } else if (statusEvent.event === 'conclusion_rejected') {
-              addMsg('system', '✗ Conclusion not reached — continuing research');
+              const rejectedLabel = m === 'debate' ? 'Round disputed — continuing debate'
+                : m === 'advice' ? 'Action point not agreed — continuing discussion'
+                : 'Conclusion not reached — continuing research';
+              addMsg('system', `✗ ${rejectedLabel}`);
             }
           } else if (event.type === 'audio') {
             await playAudioBase64(event.audio_base64, event.mime_type);
           } else if (event.type === 'done') {
             const doneEvent = event as Record<string, unknown>;
             nextWho = doneEvent.next_who as string || null;
-            // ---- RESEARCH PING-PONG MODE ---- Stop when 5 conclusions reached
-            if (doneEvent.research_complete) {
-              addMsg('system', 'Research complete — 5 conclusions reached!');
+            // Stop when 5 conclusions/rounds/action points reached
+            if (doneEvent.pingpong_complete) {
+              const m = pingPongModeNameRef.current;
+              if (m === 'debate') {
+                const gptScore = (doneEvent.debate_score_gpt as number) || 0;
+                const claudeScore = (doneEvent.debate_score_claude as number) || 0;
+                addMsg('system', `Debate complete — Final score: ChatGPT ${gptScore} - Claude ${claudeScore}!`);
+              } else if (m === 'advice') {
+                addMsg('system', 'Advice complete — 5 action points agreed!');
+              } else {
+                addMsg('system', 'Research complete — 5 conclusions reached!');
+              }
               setStopped(true);
               stoppedRef.current = true;
             }
@@ -370,7 +386,7 @@ export function usePipeline() {
 
     runningRef.current = false;
   }, [freshAbort, addMsg]);
-  // ---- END RESEARCH PING-PONG MODE ----
+  // ---- END PING-PONG MODE ----
 
   // Keep old runPipeline for backward compat (used by speech input)
   const runPipeline = useCallback(async (
@@ -450,8 +466,8 @@ export function usePipeline() {
           if (event.claude_personality) claudePersonalityResult = event.claude_personality;
 
           // Prefetch Claude's batch as soon as we have a session ID
-          // ---- RESEARCH PING-PONG MODE ---- Skip autopilot prefetch for research mode
-          if (!prefetchStarted && getSettings().mode !== 'research') {
+          // ---- PING-PONG MODE ---- Skip autopilot prefetch for ping-pong modes
+          if (!prefetchStarted && !PINGPONG_MODES.has(getSettings().mode as string)) {
             prefetchStarted = true;
             const sid = event.session_id;
             dlog('start', `Got session ${sid.slice(0, 8)}... — prefetching Claude batch NOW`);
@@ -484,20 +500,21 @@ export function usePipeline() {
       runningRef.current = true;
       setStatus('Bots chatting...');
 
-      // ---- RESEARCH PING-PONG MODE ----
-      // Detect research format from settings and launch appropriate loop
+      // ---- PING-PONG MODE ----
+      // Detect ping-pong format from settings and launch appropriate loop
       const currentSettings = getSettings();
-      const isResearch = currentSettings.mode === 'research';
-      isResearchModeRef.current = isResearch;
+      const isPingPong = PINGPONG_MODES.has(currentSettings.mode as string);
+      isPingPongModeRef.current = isPingPong;
+      pingPongModeNameRef.current = (currentSettings.mode as string) || 'research';
 
-      if (isResearch && sid && !stoppedRef.current) {
-        dlog('research', 'Research mode detected — starting ping-pong loop');
-        setStatus('Research in progress...');
+      if (isPingPong && sid && !stoppedRef.current) {
+        const modeLabel = currentSettings.mode === 'debate' ? 'Debate' : currentSettings.mode === 'advice' ? 'Advising' : 'Research';
+        dlog('research', `Ping-pong mode (${currentSettings.mode}) detected — starting ping-pong loop`);
+        setStatus(`${modeLabel} in progress...`);
         // Randomly pick who starts
         const starter = Math.random() < 0.5 ? 'gpt' : 'claude';
         runResearchPingPong(sid, starter);
       } else if (sid && !stoppedRef.current) {
-        // ---- END RESEARCH PING-PONG MODE ----
         // Normal autopilot — Claude's batch may already be ready from the prefetch
         nextGeneratorRef.current = 'claude';
         runAutopilot(sid, 'claude');
@@ -537,8 +554,8 @@ export function usePipeline() {
       const fillerCtrl = freshAbort();
       const batchGenerator = nextGeneratorRef.current;
 
-      // ---- RESEARCH PING-PONG MODE ---- Handle user interruption differently
-      if (isResearchModeRef.current) {
+      // ---- PING-PONG MODE ---- Handle user interruption differently
+      if (isPingPongModeRef.current) {
         // Discard any prefetched research response
         apiResearchDiscardPrefetch(sessionId);
 
@@ -554,14 +571,15 @@ export function usePipeline() {
         chatModeTimerRef.current = setTimeout(() => {
           chatModeTimerRef.current = null;
           if (sessionRef.current && !stoppedRef.current) {
+            const m = pingPongModeNameRef.current;
             dlog('research', 'User interruption handled — resuming ping-pong');
-            setStatus('Research in progress...');
+            setStatus(m === 'debate' ? 'Debate in progress...' : m === 'advice' ? 'Advising...' : 'Research in progress...');
             const starter = Math.random() < 0.5 ? 'gpt' : 'claude';
             runResearchPingPong(sessionRef.current, starter);
           }
         }, CHAT_MODE_TIMEOUT);
       } else {
-        // ---- END RESEARCH PING-PONG MODE ----
+        // ---- END PING-PONG MODE ----
 
         // ---- CHAT MODE ---- Play bridge/single-bot response
         runningRef.current = true;
@@ -616,16 +634,17 @@ export function usePipeline() {
     autopilotBatchCountRef.current = 0;
     autopilotMsgCountRef.current = 0;
     addMsg('system', 'Resumed!');
-    // ---- RESEARCH PING-PONG MODE ----
-    if (isResearchModeRef.current) {
-      setStatus('Research in progress...');
+    // ---- PING-PONG MODE ----
+    if (isPingPongModeRef.current) {
+      const m = pingPongModeNameRef.current;
+      setStatus(m === 'debate' ? 'Debate in progress...' : m === 'advice' ? 'Advising...' : 'Research in progress...');
       const starter = Math.random() < 0.5 ? 'gpt' : 'claude';
       runResearchPingPong(sessionId, starter);
     } else {
       setStatus('Bots chatting...');
       runAutopilot(sessionId);
     }
-    // ---- END RESEARCH PING-PONG MODE ----
+    // ---- END PING-PONG MODE ----
   };
 
   const handleEnd = () => {
@@ -660,7 +679,8 @@ export function usePipeline() {
     nextGeneratorRef.current = 'claude';
     autopilotBatchCountRef.current = 0;
     autopilotMsgCountRef.current = 0;
-    isResearchModeRef.current = false; // ---- RESEARCH PING-PONG MODE ----
+    isPingPongModeRef.current = false; // ---- PING-PONG MODE ----
+    pingPongModeNameRef.current = 'research';
     setStatus('');
     resetSettingsInit();
     return null;
