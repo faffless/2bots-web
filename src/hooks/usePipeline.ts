@@ -508,9 +508,10 @@ export function usePipeline() {
       pingPongModeNameRef.current = (currentSettings.mode as string) || 'research';
 
       if (isPingPong && sid && !stoppedRef.current) {
-        const modeLabel = currentSettings.mode === 'debate' ? 'Debate' : currentSettings.mode === 'advice' ? 'Advising' : 'Research';
+        const modeLabelMap: Record<string, string> = { debate: 'Debate', advice: 'Advising', conversation: 'Conversation', research: 'Research' };
+        const modeLabel = modeLabelMap[currentSettings.mode as string] || 'Research';
         dlog('research', `Ping-pong mode (${currentSettings.mode}) detected — starting ping-pong loop`);
-        setStatus(`${modeLabel} in progress...`);
+        setStatus(currentSettings.mode === 'conversation' ? 'Bots chatting...' : `${modeLabel} in progress...`);
         // Randomly pick who starts
         const starter = Math.random() < 0.5 ? 'gpt' : 'claude';
         runResearchPingPong(sid, starter);

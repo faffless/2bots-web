@@ -107,7 +107,7 @@ export const MODES_CONVERSATION: Record<string, string> = {
 };
 
 // Modes that use ping-pong (genuine back-and-forth) instead of scripted batches
-export const PINGPONG_MODES = new Set(['research', 'debate', 'advice']);
+export const PINGPONG_MODES = new Set(['research', 'debate', 'advice', 'conversation']);
 
 // Combined for backward compat
 export const MODES: Record<string, string> = { ...MODES_LANDING, ...MODES_CONVERSATION };
