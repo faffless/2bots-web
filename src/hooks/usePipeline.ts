@@ -299,14 +299,8 @@ export function usePipeline() {
     let who = firstWho || (Math.random() < 0.5 ? 'gpt' : 'claude');
 
     while (runningRef.current && sessionRef.current === sid && !stoppedRef.current) {
-      // Throttle check (reuse same limits)
-      if (autopilotMsgCountRef.current >= MAX_AUTOPILOT_MESSAGES) {
-        dlog('research', `Message limit reached (${MAX_AUTOPILOT_MESSAGES}). Pausing.`);
-        addMsg('system', 'Research paused — message limit reached. Hit GO to continue or NEW to start over.');
-        setStopped(true);
-        stoppedRef.current = true;
-        break;
-      }
+      // ---- RESEARCH PING-PONG MODE ---- No message limit for research
+      // Research stops when 5 conclusions are reached (signaled by backend)
 
       try {
         dlog('research', `Ping-pong turn: ${who}`);
@@ -336,7 +330,14 @@ export function usePipeline() {
           } else if (event.type === 'audio') {
             await playAudioBase64(event.audio_base64, event.mime_type);
           } else if (event.type === 'done') {
-            nextWho = (event as Record<string, unknown>).next_who as string || null;
+            const doneEvent = event as Record<string, unknown>;
+            nextWho = doneEvent.next_who as string || null;
+            // ---- RESEARCH PING-PONG MODE ---- Stop when 5 conclusions reached
+            if (doneEvent.research_complete) {
+              addMsg('system', 'Research complete — 5 conclusions reached!');
+              setStopped(true);
+              stoppedRef.current = true;
+            }
           }
         }, ctrl.signal);
 
