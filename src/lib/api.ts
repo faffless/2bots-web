@@ -133,6 +133,29 @@ export function apiFillerStream(
   return streamPost('/filler/stream', { session_id: sessionId, user_text: userText }, onEvent, signal);
 }
 
+// ---- RESEARCH PING-PONG MODE ----
+
+/** Research ping-pong — one bot responds genuinely (not scripted) */
+export function apiResearchStream(
+  sessionId: string,
+  who: string,
+  onEvent: SSECallback,
+  signal?: AbortSignal
+): Promise<void> {
+  return streamPost('/research/stream', { session_id: sessionId, who }, onEvent, signal);
+}
+
+/** Discard prefetched research response (when user interrupts) */
+export async function apiResearchDiscardPrefetch(sessionId: string): Promise<void> {
+  await fetch(`${API_BASE}/research/discard-prefetch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId }),
+  }).catch(() => {});
+}
+
+// ---- END RESEARCH PING-PONG MODE ----
+
 /** Hot-swap settings (voice, mode, etc.) for an existing session */
 export async function apiUpdateSettings(
   sessionId: string,

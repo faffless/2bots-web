@@ -6,6 +6,8 @@ import {
   apiAutopilotStream,
   apiFillerStream,
   apiDeleteSession,
+  apiResearchStream,
+  apiResearchDiscardPrefetch,
   type SSEEvent,
 } from '@/lib/api';
 import { playAudioBase64, stopAudio } from '@/lib/audio';
@@ -61,6 +63,8 @@ export function usePipeline() {
   const batchStartTimeRef = useRef(0);
   const batchMsgsPlayedRef = useRef(0);
   const [settingsDelay, setSettingsDelay] = useState<number | null>(null);
+  // ---- RESEARCH PING-PONG MODE ---- Track whether current session is research mode
+  const isResearchModeRef = useRef(false);
 
   useEffect(() => { sessionRef.current = sessionId; }, [sessionId]);
   useEffect(() => {
@@ -287,6 +291,69 @@ export function usePipeline() {
     runningRef.current = false;
   }, [freshAbort, streamAndPlayBatch, addMsg]);
 
+  // ---- RESEARCH PING-PONG MODE ----
+  // Ping-pong loop: alternates between GPT and Claude, each responding genuinely.
+  // Prefetch happens server-side. Each turn streams text+tts, then tells us who goes next.
+  const runResearchPingPong = useCallback(async (sid: string, firstWho?: string) => {
+    runningRef.current = true;
+    let who = firstWho || (Math.random() < 0.5 ? 'gpt' : 'claude');
+
+    while (runningRef.current && sessionRef.current === sid && !stoppedRef.current) {
+      // Throttle check (reuse same limits)
+      if (autopilotMsgCountRef.current >= MAX_AUTOPILOT_MESSAGES) {
+        dlog('research', `Message limit reached (${MAX_AUTOPILOT_MESSAGES}). Pausing.`);
+        addMsg('system', 'Research paused — message limit reached. Hit GO to continue or NEW to start over.');
+        setStopped(true);
+        stoppedRef.current = true;
+        break;
+      }
+
+      try {
+        dlog('research', `Ping-pong turn: ${who}`);
+        setStatus(who === 'gpt' ? 'ChatGPT thinking...' : 'Claude thinking...');
+
+        const ctrl = freshAbort();
+        const myGeneration = generationRef.current;
+        let nextWho: string | null = null;
+
+        await apiResearchStream(sid, who, async (event) => {
+          if (generationRef.current !== myGeneration) return;
+
+          if (event.type === 'text') {
+            const speaker = event.speaker as ChatMsg['speaker'];
+            addMsg(speaker, event.text);
+            setStatus(speaker === 'gpt' ? 'ChatGPT speaking...' : 'Claude speaking...');
+            autopilotMsgCountRef.current++;
+
+            if (speaker === 'gpt' && gptCountdownRef.current > 0) {
+              gptCountdownRef.current--;
+              setGptCountdown(gptCountdownRef.current || null);
+            }
+            if (speaker === 'claude' && claudeCountdownRef.current > 0) {
+              claudeCountdownRef.current--;
+              setClaudeCountdown(claudeCountdownRef.current || null);
+            }
+          } else if (event.type === 'audio') {
+            await playAudioBase64(event.audio_base64, event.mime_type);
+          } else if (event.type === 'done') {
+            nextWho = (event as Record<string, unknown>).next_who as string || null;
+          }
+        }, ctrl.signal);
+
+        if (!nextWho || !runningRef.current || stoppedRef.current) break;
+        who = nextWho;
+
+      } catch (err) {
+        if ((err as Error)?.name === 'AbortError') break;
+        console.error('Research ping-pong error:', err);
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+
+    runningRef.current = false;
+  }, [freshAbort, addMsg]);
+  // ---- END RESEARCH PING-PONG MODE ----
+
   // Keep old runPipeline for backward compat (used by speech input)
   const runPipeline = useCallback(async (
     sid: string,
@@ -365,7 +432,8 @@ export function usePipeline() {
           if (event.claude_personality) claudePersonalityResult = event.claude_personality;
 
           // Prefetch Claude's batch as soon as we have a session ID
-          if (!prefetchStarted) {
+          // ---- RESEARCH PING-PONG MODE ---- Skip autopilot prefetch for research mode
+          if (!prefetchStarted && getSettings().mode !== 'research') {
             prefetchStarted = true;
             const sid = event.session_id;
             dlog('start', `Got session ${sid.slice(0, 8)}... — prefetching Claude batch NOW`);
@@ -398,8 +466,21 @@ export function usePipeline() {
       runningRef.current = true;
       setStatus('Bots chatting...');
 
-      // Start autopilot — Claude's batch may already be ready from the prefetch
-      if (sid && !stoppedRef.current) {
+      // ---- RESEARCH PING-PONG MODE ----
+      // Detect research format from settings and launch appropriate loop
+      const currentSettings = getSettings();
+      const isResearch = currentSettings.mode === 'research';
+      isResearchModeRef.current = isResearch;
+
+      if (isResearch && sid && !stoppedRef.current) {
+        dlog('research', 'Research mode detected — starting ping-pong loop');
+        setStatus('Research in progress...');
+        // Randomly pick who starts
+        const starter = Math.random() < 0.5 ? 'gpt' : 'claude';
+        runResearchPingPong(sid, starter);
+      } else if (sid && !stoppedRef.current) {
+        // ---- END RESEARCH PING-PONG MODE ----
+        // Normal autopilot — Claude's batch may already be ready from the prefetch
         nextGeneratorRef.current = 'claude';
         runAutopilot(sid, 'claude');
       }
@@ -438,32 +519,59 @@ export function usePipeline() {
       const fillerCtrl = freshAbort();
       const batchGenerator = nextGeneratorRef.current;
 
-      // ---- CHAT MODE ---- Play bridge/single-bot response
-      runningRef.current = true;
-      stoppedRef.current = false;
-      await streamAndPlayFiller(sessionId, text, fillerCtrl);
+      // ---- RESEARCH PING-PONG MODE ---- Handle user interruption differently
+      if (isResearchModeRef.current) {
+        // Discard any prefetched research response
+        apiResearchDiscardPrefetch(sessionId);
 
-      // ---- CHAT MODE ---- Bridge done — NOW prefetch autopilot batch (includes bridge context)
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
-      dlog('chat_mode', `Bridge done — prefetching autopilot batch via ${batchGenerator}`);
-      fetch(`${apiBase}/autopilot/prefetch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, who_generates: batchGenerator }),
-      }).catch(() => {});
+        // Play bridge/filler response as usual
+        runningRef.current = true;
+        stoppedRef.current = false;
+        await streamAndPlayFiller(sessionId, text, fillerCtrl);
 
-      // ---- CHAT MODE ---- Short wait then launch autopilot (batch may be ready from prefetch)
-      runningRef.current = true;
-      stoppedRef.current = false;
+        // Resume ping-pong after bridge
+        runningRef.current = true;
+        stoppedRef.current = false;
 
-      chatModeTimerRef.current = setTimeout(() => {
-        chatModeTimerRef.current = null;
-        if (sessionRef.current && !stoppedRef.current) {
-          dlog('chat_mode', 'Bridge done — launching autopilot (batch likely prefetched)');
-          setStatus('Bots chatting...');
-          runAutopilot(sessionRef.current, batchGenerator);
-        }
-      }, CHAT_MODE_TIMEOUT);
+        chatModeTimerRef.current = setTimeout(() => {
+          chatModeTimerRef.current = null;
+          if (sessionRef.current && !stoppedRef.current) {
+            dlog('research', 'User interruption handled — resuming ping-pong');
+            setStatus('Research in progress...');
+            const starter = Math.random() < 0.5 ? 'gpt' : 'claude';
+            runResearchPingPong(sessionRef.current, starter);
+          }
+        }, CHAT_MODE_TIMEOUT);
+      } else {
+        // ---- END RESEARCH PING-PONG MODE ----
+
+        // ---- CHAT MODE ---- Play bridge/single-bot response
+        runningRef.current = true;
+        stoppedRef.current = false;
+        await streamAndPlayFiller(sessionId, text, fillerCtrl);
+
+        // ---- CHAT MODE ---- Bridge done — NOW prefetch autopilot batch (includes bridge context)
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
+        dlog('chat_mode', `Bridge done — prefetching autopilot batch via ${batchGenerator}`);
+        fetch(`${apiBase}/autopilot/prefetch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId, who_generates: batchGenerator }),
+        }).catch(() => {});
+
+        // ---- CHAT MODE ---- Short wait then launch autopilot (batch may be ready from prefetch)
+        runningRef.current = true;
+        stoppedRef.current = false;
+
+        chatModeTimerRef.current = setTimeout(() => {
+          chatModeTimerRef.current = null;
+          if (sessionRef.current && !stoppedRef.current) {
+            dlog('chat_mode', 'Bridge done — launching autopilot (batch likely prefetched)');
+            setStatus('Bots chatting...');
+            runAutopilot(sessionRef.current, batchGenerator);
+          }
+        }, CHAT_MODE_TIMEOUT);
+      }
     } catch (err) {
       if ((err as Error)?.name !== 'AbortError') {
         addMsg('system', `Error: ${(err as Error).message}`);
@@ -489,9 +597,17 @@ export function usePipeline() {
     // Reset throttle counters on resume
     autopilotBatchCountRef.current = 0;
     autopilotMsgCountRef.current = 0;
-    setStatus('Bots chatting...');
     addMsg('system', 'Resumed!');
-    runAutopilot(sessionId);
+    // ---- RESEARCH PING-PONG MODE ----
+    if (isResearchModeRef.current) {
+      setStatus('Research in progress...');
+      const starter = Math.random() < 0.5 ? 'gpt' : 'claude';
+      runResearchPingPong(sessionId, starter);
+    } else {
+      setStatus('Bots chatting...');
+      runAutopilot(sessionId);
+    }
+    // ---- END RESEARCH PING-PONG MODE ----
   };
 
   const handleEnd = () => {
@@ -526,6 +642,7 @@ export function usePipeline() {
     nextGeneratorRef.current = 'claude';
     autopilotBatchCountRef.current = 0;
     autopilotMsgCountRef.current = 0;
+    isResearchModeRef.current = false; // ---- RESEARCH PING-PONG MODE ----
     setStatus('');
     resetSettingsInit();
     return null;
