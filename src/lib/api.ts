@@ -21,7 +21,8 @@ export type SSEEvent =
   | { type: 'text'; speaker: 'gpt' | 'claude'; text: string }
   | { type: 'audio'; speaker: 'gpt' | 'claude'; audio_base64: string; mime_type: string }
   | { type: 'motivations'; gpt: string; claude: string }
-  | { type: 'done'; next_generator?: string; filler?: boolean };
+  | { type: 'done'; next_generator?: string; filler?: boolean }
+  | { type: 'research_status'; event: string; conclusion_num?: number };
 
 export type SSECallback = (event: SSEEvent) => void | Promise<void>;
 
