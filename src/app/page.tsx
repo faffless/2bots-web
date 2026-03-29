@@ -40,6 +40,13 @@ export default function Home() {
     return () => { if (placeholderTimerRef.current) clearInterval(placeholderTimerRef.current); };
   }, []);
 
+  // Register service worker for PWA
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  }, []);
+
   const pipeline = usePipeline();
   const settings = useSettings(pipeline.sessionId, pipeline.onSettingsChanged);
 
