@@ -102,10 +102,11 @@ export default function Home() {
       const randomFormat = formatKeys[Math.floor(Math.random() * formatKeys.length)];
       settings.setInteractionStyle(randomFormat);
     }
+    const formatLabel = MODES_LANDING[settings.interactionStyle] || 'Conversation';
     const result = await pipeline.handleStart(settings.getSettings, (gptP, claudeP) => {
       if (gptP !== 'default') settings.setGptPersonality(gptP);
       if (claudeP !== 'default') settings.setClaudePersonality(claudeP);
-    });
+    }, formatLabel);
     if (result === 'pricing') setShowPricing(true);
   };
 

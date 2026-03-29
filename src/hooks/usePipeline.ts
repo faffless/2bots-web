@@ -331,7 +331,8 @@ export function usePipeline() {
 
   // ---- Handlers ----
   const handleStart = async (getSettings: () => Record<string, unknown>,
-                              onPersonalitiesAssigned?: (gpt: string, claude: string) => void) => {
+                              onPersonalitiesAssigned?: (gpt: string, claude: string) => void,
+                              formatLabel?: string) => {
     const count = getSessionCount();
     if (count >= FREE_SESSION_LIMIT) return 'pricing';
     setLoading(true);
@@ -344,7 +345,8 @@ export function usePipeline() {
       autopilotBatchCountRef.current = 0;
       autopilotMsgCountRef.current = 0;
       setStatus('Bots are thinking...');
-      addMsg('system', 'Conversation started!');
+      const startedLabel = formatLabel || 'Conversation';
+      addMsg('system', `${startedLabel} started!`);
 
       dlog('start', 'Requesting opener...');
 
@@ -509,16 +511,22 @@ export function usePipeline() {
   const handleNewConversation = (resetSettingsInit: () => void) => {
     const count = getSessionCount();
     if (count >= FREE_SESSION_LIMIT) return 'pricing';
+    // Stop any playing audio and abort in-flight requests
+    generationRef.current++;
+    stopPipeline();
     // ---- CHAT MODE ---- Clear autopilot resume timer
     if (chatModeTimerRef.current) { clearTimeout(chatModeTimerRef.current); chatModeTimerRef.current = null; }
     setMessages([]);
     setStarted(false);
     setSessionId(null);
     setTurnCount(0);
+    setStopped(false);
+    stoppedRef.current = false;
     initDoneRef.current = false;
     nextGeneratorRef.current = 'claude';
     autopilotBatchCountRef.current = 0;
     autopilotMsgCountRef.current = 0;
+    setStatus('');
     resetSettingsInit();
     return null;
   };
