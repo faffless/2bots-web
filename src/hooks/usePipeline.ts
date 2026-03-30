@@ -450,33 +450,18 @@ export function usePipeline() {
 
       dlog('start', 'Requesting opener...');
 
-      let prefetchStarted = false;
       let gptPersonalityResult = 'default';
       let claudePersonalityResult = 'default';
 
       const ctrl = freshAbort();
 
-      // Stream opener and play each message as it arrives (same as autopilot)
+      // Stream opener and play each message as it arrives
       await apiStartStream(personality, getSettings(), async (event) => {
         if (event.type === 'session' && event.session_id) {
           sessionRef.current = event.session_id;
           setSessionId(event.session_id);
           if (event.gpt_personality) gptPersonalityResult = event.gpt_personality;
           if (event.claude_personality) claudePersonalityResult = event.claude_personality;
-
-          // Prefetch Claude's batch as soon as we have a session ID
-          // ---- PING-PONG MODE ---- Skip autopilot prefetch for ping-pong modes
-          if (!prefetchStarted && !PINGPONG_MODES.has(getSettings().mode as string)) {
-            prefetchStarted = true;
-            const sid = event.session_id;
-            dlog('start', `Got session ${sid.slice(0, 8)}... — prefetching Claude batch NOW`);
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
-            fetch(`${apiBase}/autopilot/prefetch`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ session_id: sid, who_generates: 'claude' }),
-            }).catch(() => {});
-          }
         } else if (event.type === 'text') {
           const who = event.speaker as 'gpt' | 'claude';
           addMsg(who, event.text);
@@ -495,11 +480,9 @@ export function usePipeline() {
       const sid = sessionRef.current;
       if (!sid) { setStarted(false); return null; }
 
-      dlog('start', 'Opener done, starting autopilot...');
+      dlog('start', 'Opener done, starting main loop...');
       runningRef.current = true;
-      setStatus('Bots chatting...');
 
-      // ---- PING-PONG MODE ----
       // Detect ping-pong format from settings and launch appropriate loop
       const currentSettings = getSettings();
       const isPingPong = PINGPONG_MODES.has(currentSettings.mode as string);
@@ -511,11 +494,19 @@ export function usePipeline() {
         const modeLabel = modeLabelMap[currentSettings.mode as string] || 'Research';
         dlog('research', `Ping-pong mode (${currentSettings.mode}) detected — starting ping-pong loop`);
         setStatus(currentSettings.mode === 'conversation' ? 'Bots chatting...' : `${modeLabel} in progress...`);
-        // Randomly pick who starts
         const starter = Math.random() < 0.5 ? 'gpt' : 'claude';
         runResearchPingPong(sid, starter);
       } else if (sid && !stoppedRef.current) {
-        // Normal autopilot — Claude's batch may already be ready from the prefetch
+        // Prefetch autopilot batch NOW — after opener is in history so the batch has context
+        dlog('start', `Opener in history — prefetching Claude batch`);
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
+        fetch(`${apiBase}/autopilot/prefetch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sid, who_generates: 'claude' }),
+        }).catch(() => {});
+
+        setStatus('Bots chatting...');
         nextGeneratorRef.current = 'claude';
         runAutopilot(sid, 'claude');
       }
