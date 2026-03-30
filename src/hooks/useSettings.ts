@@ -85,8 +85,8 @@ export function useSettings(
   const [claudeQuirkStrength, _setClaudeQuirkStrength] = useState(1);
   const [gptTtsSpeed, _setGptTtsSpeed] = useState(1.0);
   const [claudeTtsSpeed, _setClaudeTtsSpeed] = useState(1.0);
-  const [gptWordLimit, _setGptWordLimit] = useState<number | null>(null);
-  const [claudeWordLimit, _setClaudeWordLimit] = useState<number | null>(null);
+  const [gptWordLimit, _setGptWordLimit] = useState<number | null>(30);
+  const [claudeWordLimit, _setClaudeWordLimit] = useState<number | null>(30);
 
   const settingsInitRef = useRef(false);
   const settingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
