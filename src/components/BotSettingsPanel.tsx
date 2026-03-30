@@ -23,6 +23,8 @@ interface BotSettingsPanelProps {
   setCustom: (v: string) => void;
   customTrait: string;
   setCustomTrait: (v: string) => void;
+  wordLimit: number | null;
+  setWordLimit: (v: number | null) => void;
   settingStatus?: 'queued' | 'applied' | null;
   onRandomize?: () => void;
 }
@@ -30,7 +32,8 @@ interface BotSettingsPanelProps {
 export default function BotSettingsPanel({
   bot, personality, setPersonality, personalityStrength, setPersonalityStrength,
   voice, setVoice, ttsSpeed, setTtsSpeed, quirks, toggleQuirk,
-  custom, setCustom, customTrait, setCustomTrait, settingStatus, onRandomize,
+  custom, setCustom, customTrait, setCustomTrait, wordLimit, setWordLimit,
+  settingStatus, onRandomize,
 }: BotSettingsPanelProps) {
   const cfg = BOT_CONFIG[bot];
 
@@ -145,6 +148,28 @@ export default function BotSettingsPanel({
             className="flex-1 h-1.5 cursor-pointer" />
           <span className="text-[9px]">🐇</span>
         </div>
+      </div>
+
+      {/* 9. Word limit */}
+      <div className="mt-0.5">
+        <div className="flex items-center justify-between mb-0.5">
+          <span className="text-[9px] text-bot-muted">Word limit</span>
+          <button
+            onClick={() => setWordLimit(wordLimit === null ? 30 : null)}
+            className={`text-[9px] px-1.5 py-0.5 rounded border transition-all ${
+              wordLimit !== null
+                ? `${cfg.borderActive}`
+                : 'border-white/10 text-bot-muted/50 hover:text-bot-muted'
+            }`}
+          >
+            {wordLimit !== null ? `${wordLimit} words` : 'Off'}
+          </button>
+        </div>
+        {wordLimit !== null && (
+          <input type="range" min={10} max={100} step={5} value={wordLimit}
+            onChange={(e) => setWordLimit(parseInt(e.target.value))}
+            className="w-full h-1" style={{ accentColor: cfg.accentHex }} />
+        )}
       </div>
 
       {/* Setting update status */}
