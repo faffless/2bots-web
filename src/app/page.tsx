@@ -179,22 +179,22 @@ export default function Home() {
           <div className="flex flex-col flex-1 min-h-0 md:rounded-xl md:border md:border-white/5 overflow-hidden bg-bot-bg md:min-h-[600px]">
 
             {/* Header — single row: ChatGPT | status | Format about Topic | Claude */}
-            <div className="bg-bot-panel border-b border-white/5 shrink-0 px-3 py-1.5" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-              <div className="flex items-center justify-between gap-1">
+            <div className="bg-bot-panel border-b border-white/5 shrink-0 px-3 py-2" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+              <div className="flex items-center justify-between gap-1.5">
                 <button
                   onClick={() => pipeline.started && setShowGptSettings(!showGptSettings)}
-                  className={`text-bot-gpt font-normal text-xs tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
+                  className={`text-bot-gpt font-normal text-sm tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
                 ><span className="hidden md:inline">⚙ ChatGPT</span><span className="md:hidden">⚙</span></button>
 
                 {pipeline.started && !isStartingUp && (
-                  <span className="text-[9px] text-bot-muted truncate max-w-[90px] shrink-0">{pipeline.status}</span>
+                  <span className="text-[11px] text-bot-muted truncate max-w-[90px] shrink-0">{pipeline.status}</span>
                 )}
 
-                <div className={`flex items-center gap-1 ${pipeline.started ? 'shrink-0' : 'flex-1 min-w-0'}`}>
+                <div className={`flex items-center gap-1.5 ${pipeline.started ? 'shrink-0' : 'flex-1 min-w-0'}`}>
                   <button onClick={randomizeBoth} title="Randomize format & topic"
-                    className="text-[10px] text-bot-muted hover:text-bot-text transition px-0.5 shrink-0">🎲</button>
+                    className="text-sm text-bot-muted hover:text-bot-text transition px-0.5 shrink-0">🎲</button>
                   <select value={settings.interactionStyle} onChange={(e) => settings.setInteractionStyle(e.target.value)}
-                    className={`bg-bot-bg border rounded px-1 py-0.5 text-bot-text text-[10px] outline-none shrink-0 transition-all duration-300 ${
+                    className={`bg-bot-bg border rounded px-1.5 py-1 text-bot-text text-xs outline-none shrink-0 transition-all duration-300 ${
                       settings.formatSettingStatus === 'queued'
                         ? 'border-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]'
                         : settings.formatSettingStatus === 'applied'
@@ -205,14 +205,14 @@ export default function Home() {
                       <option key={k} value={k}>{v}</option>
                     ))}
                   </select>
-                  <span className="text-[9px] text-bot-muted shrink-0">on</span>
+                  <span className="text-[11px] text-bot-muted shrink-0">on</span>
                   <input
                     type="text"
                     value={settings.topic}
                     onChange={(e) => settings.setTopic(e.target.value)}
                     placeholder="Random"
-                    className={`bg-bot-bg border rounded px-1 py-0.5 text-bot-text text-[10px] outline-none placeholder:text-bot-muted/50 transition-all duration-300 ${
-                      pipeline.started ? 'w-20' : 'flex-1 min-w-0'
+                    className={`bg-bot-bg border rounded px-1.5 py-1 text-bot-text text-xs outline-none placeholder:text-bot-muted/50 transition-all duration-300 ${
+                      pipeline.started ? 'w-24' : 'flex-1 min-w-0'
                     } ${
                       settings.topicSettingStatus === 'queued'
                         ? 'border-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]'
@@ -225,7 +225,7 @@ export default function Home() {
 
                 <button
                   onClick={() => pipeline.started && setShowClaudeSettings(!showClaudeSettings)}
-                  className={`text-bot-claude font-normal text-xs tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
+                  className={`text-bot-claude font-normal text-sm tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
                 ><span className="hidden md:inline">Claude ⚙</span><span className="md:hidden">⚙</span></button>
               </div>
             </div>
@@ -273,14 +273,14 @@ export default function Home() {
             </div>
 
             {/* Bottom controls — compact */}
-            <div className="shrink-0 bg-bot-panel border-t border-white/5 px-3 py-2">
+            <div className="shrink-0 bg-bot-panel border-t border-white/5 px-3 py-2.5">
               {!pipeline.started ? (
                 <button
                   onClick={handleStartClick}
                   disabled={pipeline.loading}
                   data-umami-event="start-conversation"
                   data-umami-event-format={settings.interactionStyle}
-                  className="w-full py-2.5 rounded-lg font-normal text-sm tracking-[0.15em] transition bg-bot-user text-bot-bg hover:opacity-90 disabled:opacity-50"
+                  className="w-full py-3 rounded-lg font-normal text-base tracking-[0.15em] transition bg-bot-user text-bot-bg hover:opacity-90 disabled:opacity-50"
                   style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}
                 >
                   {pipeline.loading ? 'Starting...' : 'START'}
@@ -288,7 +288,7 @@ export default function Home() {
               ) : (
                 <>
                   {/* Input + mic + Send + action buttons — all one row */}
-                  <div className="flex gap-1.5 items-center">
+                  <div className="flex gap-2 items-center">
                     <div className="flex-1 min-w-0 relative">
                       <input
                         ref={pipeline.inputRef}
@@ -297,19 +297,19 @@ export default function Home() {
                         onKeyDown={(e) => e.key === 'Enter' && handleSendClick()}
                         placeholder={CONVERSATION_IDEAS[placeholderIdx]}
                         disabled={!pipeline.sessionId}
-                        className="w-full bg-bot-bg border border-white/10 rounded px-2 py-1.5 pr-8 text-xs text-bot-text placeholder:text-bot-muted/40 outline-none focus:border-bot-user transition"
+                        className="w-full bg-bot-bg border border-white/10 rounded px-3 py-2 pr-9 text-sm text-bot-text placeholder:text-bot-muted/40 outline-none focus:border-bot-user transition"
                       />
                       {pipeline.sessionId && (
                         <button
                           onClick={speech.handleInterrupt}
-                          className={`absolute right-1.5 top-1/2 -translate-y-1/2 transition ${
+                          className={`absolute right-2 top-1/2 -translate-y-1/2 transition ${
                             speech.recording
                               ? 'text-[#10a37f] animate-pulse'
                               : 'text-bot-muted/50 hover:text-bot-text'
                           }`}
                           title={speech.recording ? 'Tap to send' : 'Voice input'}
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
                             <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
                             <line x1="12" y1="19" x2="12" y2="23"/>
@@ -322,10 +322,10 @@ export default function Home() {
                     <button
                       onClick={() => handleSendClick()}
                       disabled={!pipeline.sessionId || !typedText.trim()}
-                      className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/10 rounded-lg text-bot-text hover:bg-white/20 transition disabled:opacity-30 shrink-0"
+                      className="w-9 h-9 flex items-center justify-center bg-white/10 border border-white/10 rounded-lg text-bot-text hover:bg-white/20 transition disabled:opacity-30 shrink-0"
                       title="Send"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                       </svg>
                     </button>
@@ -333,7 +333,7 @@ export default function Home() {
                     {pipeline.sessionId && (
                       <button
                         onClick={pipeline.stopped ? pipeline.handleGo : pipeline.handleStop}
-                        className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/10 rounded-lg text-bot-text hover:bg-white/20 transition shrink-0"
+                        className="w-9 h-9 flex items-center justify-center bg-white/10 border border-white/10 rounded-lg text-bot-text hover:bg-white/20 transition shrink-0"
                         title={pipeline.stopped ? 'Resume' : 'Pause'}
                       >
                         {pipeline.stopped ? '▶' : '⏸'}
@@ -341,10 +341,10 @@ export default function Home() {
                     )}
                     {/* New conversation */}
                     <button onClick={handleNewClick}
-                      className="w-8 h-8 flex items-center justify-center bg-white/10 border border-white/10 rounded-lg text-bot-text hover:bg-white/20 transition shrink-0"
+                      className="w-9 h-9 flex items-center justify-center bg-white/10 border border-white/10 rounded-lg text-bot-text hover:bg-white/20 transition shrink-0"
                       title="New conversation"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
                       </svg>
                     </button>

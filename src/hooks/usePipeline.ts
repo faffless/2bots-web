@@ -304,13 +304,13 @@ export function usePipeline() {
             setStatus(speaker === 'gpt' ? 'ChatGPT speaking...' : 'Claude speaking...');
             autopilotMsgCountRef.current++;
 
-            // Show countdown to next review opportunity
+            // Show countdown to next milestone
             const textEvent = event as Record<string, unknown>;
             if (textEvent.msgs_until_review) {
               const m = pingPongModeNameRef.current;
-              const countdownLabel = m === 'debate' ? 'Next round judging'
-                : m === 'advice' ? 'Next action point opportunity'
-                : 'Next conclusion opportunity';
+              const countdownLabel = m === 'debate' ? 'Next motion'
+                : m === 'advice' ? 'Next recommendation'
+                : 'Next finding';
               addMsg('system', `${countdownLabel} in ${textEvent.msgs_until_review} messages`);
             }
 
@@ -325,30 +325,28 @@ export function usePipeline() {
           } else if (event.type === 'research_status') {
             const statusEvent = event as Record<string, unknown>;
             const m = (statusEvent.mode as string) || pingPongModeNameRef.current;
+            const total = (statusEvent.milestone_total as number) || '?';
             if (statusEvent.event === 'threshold_reached') {
-              const thresholdLabel = m === 'debate' ? 'Round judging threshold reached'
-                : m === 'advice' ? 'Action point threshold reached'
-                : 'Conclusion threshold reached';
+              const thresholdLabel = m === 'debate' ? 'Motion review'
+                : m === 'advice' ? 'Recommendation review'
+                : 'Finding review';
               addMsg('system', `⚡ ${thresholdLabel}`);
             } else if (statusEvent.event === 'conclusion_reached') {
+              const latest = statusEvent.latest_conclusion as string || '';
+              const num = statusEvent.conclusion_num as number;
               if (m === 'debate') {
-                const winner = statusEvent.round_winner as string || '?';
                 const gptScore = statusEvent.debate_score_gpt as number || 0;
                 const claudeScore = statusEvent.debate_score_claude as number || 0;
-                addMsg('system', `✓ Round ${statusEvent.conclusion_num}: ${winner} wins (Score: ChatGPT ${gptScore} - Claude ${claudeScore})`);
+                addMsg('system', `✓ Motion ${num}/${total} carried (Score: ChatGPT ${gptScore} - Claude ${claudeScore})`);
               } else if (m === 'advice') {
-                const conclusions = statusEvent.conclusions as string[];
-                const list = conclusions.map((c: string, i: number) => `${i + 1}. ${c}`).join(' | ');
-                addMsg('system', `✓ Action point ${statusEvent.conclusion_num} agreed — ${list}`);
+                addMsg('system', `✓ Recommendation ${num}/${total} agreed`);
               } else {
-                const conclusions = statusEvent.conclusions as string[];
-                const list = conclusions.map((c: string, i: number) => `${i + 1}. ${c}`).join(' | ');
-                addMsg('system', `✓ Conclusion ${statusEvent.conclusion_num} reached — ${list}`);
+                addMsg('system', `✓ Finding ${num}/${total} reached`);
               }
             } else if (statusEvent.event === 'conclusion_rejected') {
-              const rejectedLabel = m === 'debate' ? 'Round disputed — continuing debate'
-                : m === 'advice' ? 'Action point not agreed — continuing discussion'
-                : 'Conclusion not reached — continuing research';
+              const rejectedLabel = m === 'debate' ? 'Motion disputed — continuing debate'
+                : m === 'advice' ? 'Recommendation not agreed — continuing discussion'
+                : 'Finding not reached — continuing research';
               addMsg('system', `✗ ${rejectedLabel}`);
             }
           } else if (event.type === 'audio') {
@@ -356,17 +354,18 @@ export function usePipeline() {
           } else if (event.type === 'done') {
             const doneEvent = event as Record<string, unknown>;
             nextWho = doneEvent.next_who as string || null;
-            // Stop when 5 conclusions/rounds/action points reached
+            // Stop when all milestones reached
             if (doneEvent.pingpong_complete) {
               const m = pingPongModeNameRef.current;
+              const mt = (doneEvent.milestone_target as number) || '?';
               if (m === 'debate') {
                 const gptScore = (doneEvent.debate_score_gpt as number) || 0;
                 const claudeScore = (doneEvent.debate_score_claude as number) || 0;
                 addMsg('system', `Debate complete — Final score: ChatGPT ${gptScore} - Claude ${claudeScore}!`);
               } else if (m === 'advice') {
-                addMsg('system', 'Advice complete — 5 action points agreed!');
+                addMsg('system', `Advice complete — ${mt} recommendations agreed!`);
               } else {
-                addMsg('system', 'Research complete — 5 conclusions reached!');
+                addMsg('system', `Research complete — ${mt} findings reached!`);
               }
               setStopped(true);
               stoppedRef.current = true;

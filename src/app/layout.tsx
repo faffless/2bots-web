@@ -30,11 +30,20 @@ export const metadata: Metadata = {
     url: 'https://2bots.ai',
     siteName: '2BOTS',
     type: 'website',
+    images: [
+      {
+        url: 'https://2bots.ai/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: '2BOTS',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: '2BOTS — Claude & ChatGPT Together',
     description: 'Talk to Claude and ChatGPT at the same time.',
+    images: ['https://2bots.ai/og-image.png'],
   },
 };
 
