@@ -22,6 +22,7 @@ import {
   QUIRK_OPTIONS,
   VOICE_OPTIONS,
   PINGPONG_MODES,
+  TOPIC_IDEAS,
   getPersonalityLabel,
 } from '@/lib/constants';
 
@@ -52,6 +53,10 @@ export default function Home() {
   const settings = useSettings(pipeline.sessionId, pipeline.onSettingsChanged);
 
   // Randomize helpers
+  const randomizeTopic = () => {
+    settings.setTopic(TOPIC_IDEAS[Math.floor(Math.random() * TOPIC_IDEAS.length)]);
+  };
+
   const randomizeFormat = () => {
     const modes = pipeline.started ? MODES_CONVERSATION : MODES_LANDING;
     const keys = Object.keys(modes).filter(k => k !== 'random' && k !== 'mix');
@@ -200,6 +205,8 @@ export default function Home() {
                     ))}
                   </select>
                   <span className="text-[9px] text-bot-muted">on</span>
+                  <button onClick={randomizeTopic} title="Random topic"
+                    className="text-[10px] text-bot-muted hover:text-bot-text transition px-0.5">🎲</button>
                   <input
                     type="text"
                     value={settings.topic}
