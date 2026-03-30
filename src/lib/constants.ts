@@ -474,6 +474,64 @@ const TEACH_ME_TOPICS = [
   'How to understand wine beyond just red and white',
 ];
 
+// Advice topics
+const ADVICE_TOPICS = [
+  'How to quit a job without burning bridges',
+  'Whether to go back to university at 30',
+  'How to have a difficult conversation with a friend',
+  'Whether to start a business or stay employed',
+  'How to deal with a toxic family member you can\'t avoid',
+  'Whether to move to a new city for a better opportunity',
+  'How to get out of a creative rut that\'s lasted months',
+  'Whether to buy a house now or keep renting',
+  'How to set boundaries at work without seeming difficult',
+  'Whether to end a long friendship that\'s become one-sided',
+  'How to negotiate a raise when you feel undervalued',
+  'Whether to pursue passion or stability in a career change',
+  'How to rebuild confidence after a major failure',
+  'Whether to confront a colleague who takes credit for your work',
+  'How to manage money when you\'re living paycheck to paycheck',
+  'Whether to tell a friend their partner is cheating',
+  'How to stop overthinking every decision you make',
+  'Whether to forgive someone who hasn\'t apologised',
+  'How to make new friends as an adult in a new city',
+  'Whether to take a pay cut for a job you\'d actually enjoy',
+  'How to deal with imposter syndrome in a senior role',
+  'Whether to have the kids conversation early in a relationship',
+  'How to support someone with depression without burning out',
+  'Whether to invest savings or pay off debt first',
+  'How to handle a midlife crisis without making it worse',
+];
+
+// Interview topics
+const INTERVIEW_TOPICS = [
+  'A retired spy who can finally talk about one mission',
+  'The person who designed the London Underground map',
+  'A professional sleeper who tests mattresses for a living',
+  'Someone who lived completely off-grid for five years',
+  'The world\'s most patient teacher at the world\'s worst school',
+  'A professional mourner who attends strangers\' funerals',
+  'The person who writes fortune cookie messages',
+  'A former cult member who got out and rebuilt their life',
+  'Someone who won the lottery and says it ruined everything',
+  'The last blockbuster employee on their final day',
+  'A storm chaser explaining why they run toward tornadoes',
+  'Someone who switched careers five times and found happiness',
+  'The person who names paint colours for a living',
+  'A hostage negotiator discussing their most intense case',
+  'Someone who lives in an airport by choice',
+  'The inventor of a product everyone uses but nobody knows about',
+  'A deep sea diver who found something unexplainable',
+  'Someone who faked their own death and came back',
+  'The most interesting taxi driver in the world',
+  'A retired astronaut who misses space every day',
+  'Someone who was wrongfully imprisoned for a decade',
+  'The person who decides what goes in a time capsule',
+  'A professional food taster whose palate is insured',
+  'Someone who accidentally became famous overnight',
+  'A voiceover artist who voices a character everyone recognises',
+];
+
 // Map format keys to their topic pools
 export const TOPIC_BY_FORMAT: Record<string, string[]> = {
   game: GAME_TOPICS,
@@ -481,6 +539,8 @@ export const TOPIC_BY_FORMAT: Record<string, string[]> = {
   bedtime_story: STORY_TOPICS,
   comedy: COMEDY_TOPICS,
   teach_me: TEACH_ME_TOPICS,
+  advice: ADVICE_TOPICS,
+  interview: INTERVIEW_TOPICS,
 };
 
 // Default pool for formats without their own list
