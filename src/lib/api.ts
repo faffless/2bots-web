@@ -21,7 +21,7 @@ export type SSEEvent =
   | { type: 'text'; speaker: 'gpt' | 'claude'; text: string }
   | { type: 'audio'; speaker: 'gpt' | 'claude'; audio_base64: string; mime_type: string }
   | { type: 'motivations'; gpt: string; claude: string }
-  | { type: 'done'; next_generator?: string; filler?: boolean }
+  | { type: 'done'; next_generator?: string; next_who?: string; batch_size?: number; filler?: boolean; pingpong_complete?: boolean; milestone_target?: number; conclusions?: string[]; mode?: string; debate_score_gpt?: number; debate_score_claude?: number }
   | { type: 'research_status'; event: string; conclusion_num?: number; latest_conclusion?: string; milestone_total?: number; debate_score_gpt?: number; debate_score_claude?: number; mode?: string };
 
 export type SSECallback = (event: SSEEvent) => void | Promise<void>;

@@ -470,26 +470,57 @@ export function usePipeline() {
       const startedLabel = formatLabel || 'Conversation';
       addMsg('system', `${startedLabel} started!`);
 
-      dlog('start', 'Requesting opener...');
+      dlog('start', 'Requesting buffered start (text + TTS pre-generated)...');
 
       let gptPersonalityResult = 'default';
       let claudePersonalityResult = 'default';
+      let loadingDismissed = false;
+      let startNextWho: string | null = null;
+      let startNextGenerator: string | null = null;
 
       const ctrl = freshAbort();
 
-      // Stream opener and play each message as it arrives
-      await apiStartStream(personality, getSettings(), async (event) => {
+      // Detect ping-pong mode for countdown handling
+      const currentSettings = getSettings();
+      const isPingPong = PINGPONG_MODES.has(currentSettings.mode as string);
+      isPingPongModeRef.current = isPingPong;
+      pingPongModeNameRef.current = (currentSettings.mode as string) || 'research';
+
+      // Stream buffered start — all content + TTS pre-generated on server
+      // Loading screen stays up until first text event arrives
+      await apiStartStream(personality, currentSettings, async (event) => {
         if (event.type === 'session' && event.session_id) {
           sessionRef.current = event.session_id;
           setSessionId(event.session_id);
           if (event.gpt_personality) gptPersonalityResult = event.gpt_personality;
           if (event.claude_personality) claudePersonalityResult = event.claude_personality;
         } else if (event.type === 'text') {
+          // Dismiss loading screen on first text event — content is ready to play
+          if (!loadingDismissed) {
+            loadingDismissed = true;
+            setLoading(false);
+          }
           const who = event.speaker as 'gpt' | 'claude';
           addMsg(who, event.text);
           setStatus(who === 'gpt' ? 'ChatGPT speaking...' : 'Claude speaking...');
+          autopilotMsgCountRef.current++;
+
+          // Handle ping-pong countdown
+          const textEvent = event as Record<string, unknown>;
+          if (textEvent.msgs_until_review && isPingPong) {
+            const m = pingPongModeNameRef.current;
+            const countdownLabel = m === 'debate' ? 'Next motion'
+              : m === 'advice' ? 'Next recommendation'
+              : m === 'help_me_decide' ? 'Next decision'
+              : 'Next finding';
+            addMsg('system', `${countdownLabel} in ${textEvent.msgs_until_review} messages`);
+          }
         } else if (event.type === 'audio') {
           await playAudioBase64(event.audio_base64, event.mime_type);
+        } else if (event.type === 'done') {
+          const doneEvent = event as Record<string, unknown>;
+          startNextWho = (doneEvent.next_who as string) || null;
+          startNextGenerator = (doneEvent.next_generator as string) || null;
         }
       }, ctrl.signal);
 
@@ -502,35 +533,24 @@ export function usePipeline() {
       const sid = sessionRef.current;
       if (!sid) { setStarted(false); return null; }
 
-      dlog('start', 'Opener done, starting main loop...');
+      dlog('start', 'Buffered start done, launching main loop...');
       runningRef.current = true;
 
-      // Detect ping-pong format from settings and launch appropriate loop
-      const currentSettings = getSettings();
-      const isPingPong = PINGPONG_MODES.has(currentSettings.mode as string);
-      isPingPongModeRef.current = isPingPong;
-      pingPongModeNameRef.current = (currentSettings.mode as string) || 'research';
-
       if (isPingPong && sid && !stoppedRef.current) {
+        // First 2 messages already played — continue ping-pong from next_who
         const modeLabelMap: Record<string, string> = { debate: 'Debate', advice: 'Advising', conversation: 'Conversation', research: 'Research', help_me_decide: 'Deciding' };
         const modeLabel = modeLabelMap[currentSettings.mode as string] || 'Research';
-        dlog('research', `Ping-pong mode (${currentSettings.mode}) detected — starting ping-pong loop`);
+        dlog('research', `Ping-pong mode — continuing from ${startNextWho}`);
         setStatus(currentSettings.mode === 'conversation' ? 'Bots chatting...' : `${modeLabel} in progress...`);
-        const starter = Math.random() < 0.5 ? 'gpt' : 'claude';
-        runResearchPingPong(sid, starter);
+        runResearchPingPong(sid, startNextWho || (Math.random() < 0.5 ? 'gpt' : 'claude'));
       } else if (sid && !stoppedRef.current) {
-        // Prefetch autopilot batch NOW — after opener is in history so the batch has context
-        dlog('start', `Opener in history — prefetching Claude batch`);
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
-        fetch(`${apiBase}/autopilot/prefetch`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sid, who_generates: 'claude' }),
-        }).catch(() => {});
-
+        // First batch already played — backend prefetch already kicked off
+        // Continue autopilot from next generator (no manual prefetch needed)
+        const nextGen = startNextGenerator || 'claude';
+        dlog('start', `First batch played — continuing autopilot via ${nextGen}`);
         setStatus('Bots chatting...');
-        nextGeneratorRef.current = 'claude';
-        runAutopilot(sid, 'claude');
+        nextGeneratorRef.current = nextGen;
+        runAutopilot(sid, nextGen);
       }
       return null;
     } catch (err) {
