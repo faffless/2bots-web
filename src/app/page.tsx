@@ -21,6 +21,7 @@ import {
   PERSONALITY_OPTIONS,
   QUIRK_OPTIONS,
   VOICE_OPTIONS,
+  PINGPONG_MODES,
   getPersonalityLabel,
 } from '@/lib/constants';
 
@@ -212,6 +213,31 @@ export default function Home() {
                           : 'border-white/10 focus:border-bot-user'
                     }`}
                   />
+                  {/* Word limit toggle — only for ping-pong modes */}
+                  {pipeline.started && PINGPONG_MODES.has(settings.interactionStyle) && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => settings.setWordLimit(settings.wordLimit === null ? 30 : null)}
+                        className={`text-[9px] px-1 py-0.5 rounded border transition-all ${
+                          settings.wordLimit !== null
+                            ? 'border-bot-user/40 bg-bot-user/10 text-bot-text'
+                            : 'border-white/10 text-bot-muted/50 hover:text-bot-muted'
+                        }`}
+                        title={settings.wordLimit !== null ? `Limit: ${settings.wordLimit} words` : 'No word limit'}
+                      >
+                        {settings.wordLimit !== null ? `${settings.wordLimit}w` : '∞'}
+                      </button>
+                      {settings.wordLimit !== null && (
+                        <input
+                          type="range" min={10} max={100} step={5}
+                          value={settings.wordLimit}
+                          onChange={(e) => settings.setWordLimit(parseInt(e.target.value))}
+                          className="w-12 h-1 accent-bot-user"
+                          title={`${settings.wordLimit} word limit`}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <button

@@ -25,6 +25,7 @@ export interface SettingsState {
   claudeQuirkStrength: number;
   gptTtsSpeed: number;
   claudeTtsSpeed: number;
+  wordLimit: number | null;
 }
 
 export interface SettingsActions {
@@ -48,6 +49,7 @@ export interface SettingsActions {
   setClaudeQuirkStrength: (v: number) => void;
   setGptTtsSpeed: (v: number) => void;
   setClaudeTtsSpeed: (v: number) => void;
+  setWordLimit: (v: number | null) => void;
   toggleQuirk: (bot: 'gpt' | 'claude', quirk: string) => void;
   getSettings: () => Record<string, unknown>;
   resetSettingsInit: () => void;
@@ -81,6 +83,7 @@ export function useSettings(
   const [claudeQuirkStrength, _setClaudeQuirkStrength] = useState(1);
   const [gptTtsSpeed, _setGptTtsSpeed] = useState(1.0);
   const [claudeTtsSpeed, _setClaudeTtsSpeed] = useState(1.0);
+  const [wordLimit, _setWordLimit] = useState<number | null>(null);
 
   const settingsInitRef = useRef(false);
   const settingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -124,6 +127,7 @@ export function useSettings(
   const setClaudeQuirkStrength = (v: number) => { claudeChangedRef.current = true; _setClaudeQuirkStrength(v); };
   const setGptTtsSpeed = (v: number) => { gptChangedRef.current = true; _setGptTtsSpeed(v); };
   const setClaudeTtsSpeed = (v: number) => { claudeChangedRef.current = true; _setClaudeTtsSpeed(v); };
+  const setWordLimit = (v: number | null) => { gptChangedRef.current = true; claudeChangedRef.current = true; _setWordLimit(v); };
 
   const getSettings = () => ({
     gpt_response_length: gptResponseLength,
@@ -146,6 +150,7 @@ export function useSettings(
     claude_quirk_strength: claudeQuirkStrength,
     gpt_tts_speed: gptTtsSpeed,
     claude_tts_speed: claudeTtsSpeed,
+    word_limit: wordLimit,
   });
 
   // Helper to show applied status for 3 seconds then clear
@@ -221,7 +226,7 @@ export function useSettings(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gptVoice, claudeVoice, interactionStyle, topic, gptResponseLength, claudeResponseLength,
       gptPersonality, claudePersonality, gptQuirks, claudeQuirks, gptCustom, claudeCustom, gptCustomTrait, claudeCustomTrait,
-      gptPersonalityStrength, claudePersonalityStrength, gptQuirkStrength, claudeQuirkStrength, gptTtsSpeed, claudeTtsSpeed]);
+      gptPersonalityStrength, claudePersonalityStrength, gptQuirkStrength, claudeQuirkStrength, gptTtsSpeed, claudeTtsSpeed, wordLimit]);
 
   const toggleQuirk = (bot: 'gpt' | 'claude', quirk: string) => {
     const setter = bot === 'gpt' ? setGptQuirks : setClaudeQuirks;
@@ -253,6 +258,7 @@ export function useSettings(
     claudeQuirkStrength, setClaudeQuirkStrength,
     gptTtsSpeed, setGptTtsSpeed,
     claudeTtsSpeed, setClaudeTtsSpeed,
+    wordLimit, setWordLimit,
     toggleQuirk,
     getSettings,
     resetSettingsInit,
