@@ -523,7 +523,7 @@ export function usePipeline() {
       return null;
     } catch (err) {
       if ((err as Error)?.name !== 'AbortError') {
-        alert('Failed to start. Make sure the backend is running.\n\n' + (err as Error).message);
+        addMsg('system', 'Oops — the bots are having a nap. Give it 30 seconds and try again, they just need to wake up!');
         setStarted(false);
       }
       return null;
@@ -611,8 +611,8 @@ export function usePipeline() {
       }
     } catch (err) {
       if ((err as Error)?.name !== 'AbortError') {
-        addMsg('system', `Error: ${(err as Error).message}`);
-        setStatus('Error');
+        addMsg('system', 'The bots tripped over each other. Try sending that again!');
+        setStatus('Ready');
       }
     }
   };

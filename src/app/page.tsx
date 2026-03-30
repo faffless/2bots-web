@@ -278,6 +278,8 @@ export default function Home() {
                 <button
                   onClick={handleStartClick}
                   disabled={pipeline.loading}
+                  data-umami-event="start-conversation"
+                  data-umami-event-format={settings.interactionStyle}
                   className="w-full py-2.5 rounded-lg font-normal text-sm tracking-[0.15em] transition bg-bot-user text-bot-bg hover:opacity-90 disabled:opacity-50"
                   style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}
                 >

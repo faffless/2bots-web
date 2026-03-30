@@ -43,7 +43,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-2xl font-semibold text-bot-text mb-4">2. Usage</h2>
             <p className="text-bot-text leading-relaxed">
-              2BOTS is currently free to use with a limit of 10 conversations per day. We reserve the right to change usage limits, introduce paid tiers, or modify the service at any time.
+              2BOTS is currently free to use. We reserve the right to introduce usage limits, paid tiers, or modify the service at any time.
             </p>
           </section>
 

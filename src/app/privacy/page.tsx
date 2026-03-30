@@ -53,7 +53,7 @@ export default function PrivacyPage() {
               <div>
                 <h3 className="text-lg font-semibold text-bot-text mb-2">Browser Storage</h3>
                 <p className="text-bot-text leading-relaxed">
-                  2BOTS uses your browser&apos;s localStorage to track the number of conversations you&apos;ve started (to enforce the daily free tier limit) and to store your preferences and settings. No account or login is required. This data stays on your device and is not sent to our servers.
+                  2BOTS uses your browser&apos;s localStorage to store your preferences and settings. No account or login is required. This data stays on your device and is not sent to our servers.
                 </p>
               </div>
 
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
             </p>
             <ul className="space-y-2 text-bot-text list-disc list-inside">
               <li>To provide the 2BOTS service (sending your inputs to AI APIs and returning responses)</li>
-              <li>To enforce usage limits (free tier conversation limits via localStorage)</li>
+              <li>To understand usage patterns (anonymous, cookieless analytics via Umami)</li>
               <li>To prevent abuse (IP-based rate limiting)</li>
               <li>To maintain and improve the service</li>
             </ul>
@@ -100,9 +100,21 @@ export default function PrivacyPage() {
                 </p>
               </div>
               <div className="border-t border-bot-text/10 pt-4">
-                <h3 className="font-semibold text-bot-text mb-1">Render (Hosting)</h3>
+                <h3 className="font-semibold text-bot-text mb-1">Vercel (Frontend Hosting)</h3>
                 <p className="text-bot-muted text-sm">
-                  Hosts the 2BOTS frontend and backend services. May collect standard server logs. Subject to Render&apos;s privacy policy.
+                  Hosts the 2BOTS website. May collect standard server logs. Subject to Vercel&apos;s privacy policy.
+                </p>
+              </div>
+              <div className="border-t border-bot-text/10 pt-4">
+                <h3 className="font-semibold text-bot-text mb-1">Render (Backend Hosting)</h3>
+                <p className="text-bot-muted text-sm">
+                  Hosts the 2BOTS backend API. May collect standard server logs. Subject to Render&apos;s privacy policy.
+                </p>
+              </div>
+              <div className="border-t border-bot-text/10 pt-4">
+                <h3 className="font-semibold text-bot-text mb-1">Umami (Analytics)</h3>
+                <p className="text-bot-muted text-sm">
+                  Provides anonymous, cookieless website analytics. No personal data is collected or stored. Subject to Umami&apos;s privacy policy.
                 </p>
               </div>
             </div>
