@@ -22,6 +22,7 @@ import {
   QUIRK_OPTIONS,
   VOICE_OPTIONS,
   TOPIC_IDEAS,
+  getTopicsForFormat,
   getPersonalityLabel,
 } from '@/lib/constants';
 
@@ -55,8 +56,10 @@ export default function Home() {
   const randomizeBoth = () => {
     const modes = pipeline.started ? MODES_CONVERSATION : MODES_LANDING;
     const keys = Object.keys(modes).filter(k => k !== 'random' && k !== 'mix');
-    settings.setInteractionStyle(keys[Math.floor(Math.random() * keys.length)]);
-    settings.setTopic(TOPIC_IDEAS[Math.floor(Math.random() * TOPIC_IDEAS.length)]);
+    const format = keys[Math.floor(Math.random() * keys.length)];
+    settings.setInteractionStyle(format);
+    const topics = getTopicsForFormat(format);
+    settings.setTopic(topics[Math.floor(Math.random() * topics.length)]);
   };
 
   const randomizeBot = (bot: 'gpt' | 'claude') => {
