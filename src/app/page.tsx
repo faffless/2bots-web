@@ -52,14 +52,11 @@ export default function Home() {
   const settings = useSettings(pipeline.sessionId, pipeline.onSettingsChanged);
 
   // Randomize helpers
-  const randomizeTopic = () => {
-    settings.setTopic(TOPIC_IDEAS[Math.floor(Math.random() * TOPIC_IDEAS.length)]);
-  };
-
-  const randomizeFormat = () => {
+  const randomizeBoth = () => {
     const modes = pipeline.started ? MODES_CONVERSATION : MODES_LANDING;
     const keys = Object.keys(modes).filter(k => k !== 'random' && k !== 'mix');
     settings.setInteractionStyle(keys[Math.floor(Math.random() * keys.length)]);
+    settings.setTopic(TOPIC_IDEAS[Math.floor(Math.random() * TOPIC_IDEAS.length)]);
   };
 
   const randomizeBot = (bot: 'gpt' | 'claude') => {
@@ -190,11 +187,11 @@ export default function Home() {
                   <span className="text-[9px] text-bot-muted truncate max-w-[90px] shrink-0">{pipeline.status}</span>
                 )}
 
-                <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={randomizeFormat} title="Random format"
-                    className="text-[10px] text-bot-muted hover:text-bot-text transition px-0.5">🎲</button>
+                <div className={`flex items-center gap-1 ${pipeline.started ? 'shrink-0' : 'flex-1 min-w-0'}`}>
+                  <button onClick={randomizeBoth} title="Randomize format & topic"
+                    className="text-[10px] text-bot-muted hover:text-bot-text transition px-0.5 shrink-0">🎲</button>
                   <select value={settings.interactionStyle} onChange={(e) => settings.setInteractionStyle(e.target.value)}
-                    className={`bg-bot-bg border rounded px-1 py-0.5 text-bot-text text-[10px] outline-none transition-all duration-300 ${
+                    className={`bg-bot-bg border rounded px-1 py-0.5 text-bot-text text-[10px] outline-none shrink-0 transition-all duration-300 ${
                       settings.formatSettingStatus === 'queued'
                         ? 'border-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]'
                         : settings.formatSettingStatus === 'applied'
@@ -205,15 +202,15 @@ export default function Home() {
                       <option key={k} value={k}>{v}</option>
                     ))}
                   </select>
-                  <span className="text-[9px] text-bot-muted">on</span>
-                  <button onClick={randomizeTopic} title="Random topic"
-                    className="text-[10px] text-bot-muted hover:text-bot-text transition px-0.5">🎲</button>
+                  <span className="text-[9px] text-bot-muted shrink-0">on</span>
                   <input
                     type="text"
                     value={settings.topic}
                     onChange={(e) => settings.setTopic(e.target.value)}
                     placeholder="Random"
-                    className={`bg-bot-bg border rounded px-1 py-0.5 text-bot-text text-[10px] outline-none w-20 placeholder:text-bot-muted/50 transition-all duration-300 ${
+                    className={`bg-bot-bg border rounded px-1 py-0.5 text-bot-text text-[10px] outline-none placeholder:text-bot-muted/50 transition-all duration-300 ${
+                      pipeline.started ? 'w-20' : 'flex-1 min-w-0'
+                    } ${
                       settings.topicSettingStatus === 'queued'
                         ? 'border-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]'
                         : settings.topicSettingStatus === 'applied'
