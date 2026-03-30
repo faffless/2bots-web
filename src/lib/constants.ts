@@ -89,6 +89,7 @@ export const MODES_LANDING: Record<string, string> = {
   game:            'Game',
   teach_me:        'Teach Me',
   advice:          'Advice',
+  help_me_decide:  'Help Me Decide',
 };
 
 // Modes shown during conversation (includes Mix, no Random)
@@ -104,10 +105,11 @@ export const MODES_CONVERSATION: Record<string, string> = {
   game:            'Game',
   teach_me:        'Teach Me',
   advice:          'Advice',
+  help_me_decide:  'Help Me Decide',
 };
 
 // Modes that use ping-pong (genuine back-and-forth) instead of scripted batches
-export const PINGPONG_MODES = new Set(['research', 'debate', 'advice', 'conversation']);
+export const PINGPONG_MODES = new Set(['research', 'debate', 'advice', 'conversation', 'help_me_decide']);
 
 // Combined for backward compat
 export const MODES: Record<string, string> = { ...MODES_LANDING, ...MODES_CONVERSATION };
@@ -533,6 +535,34 @@ const INTERVIEW_TOPICS = [
 ];
 
 // Map format keys to their topic pools
+const DECIDE_TOPICS = [
+  'Should I quit my job and go freelance?',
+  'Should I move to a new city for a fresh start?',
+  'Should I go back to university or learn on my own?',
+  'Should I tell my friend their partner is cheating?',
+  'Should I buy a house or keep renting?',
+  'Should I start a business or stay employed?',
+  'Should I confront my boss about the toxic work culture?',
+  'Should I adopt a pet when I travel a lot for work?',
+  'Should I lend money to a family member who keeps asking?',
+  'Should I take a pay cut for a job I actually love?',
+  'Should I end a long friendship that feels one-sided?',
+  'Should I have kids or stay child-free?',
+  'Should I invest my savings or pay off debt first?',
+  'Should I accept a promotion that means relocating?',
+  'Should I tell my parents I dropped out of uni?',
+  'Should I go travelling or save for a deposit?',
+  'Should I switch careers at 40?',
+  'Should I forgive someone who never apologised?',
+  'Should I co-sign a loan for my sibling?',
+  'Should I date someone my friends don\'t approve of?',
+  'Should I take a gap year before starting my career?',
+  'Should I sell my car and use public transport?',
+  'Should I move back home to save money?',
+  'Should I accept a job offer from a competitor?',
+  'Should I get married or are we fine as we are?',
+];
+
 export const TOPIC_BY_FORMAT: Record<string, string[]> = {
   game: GAME_TOPICS,
   roleplay: STORY_TOPICS,
@@ -541,6 +571,7 @@ export const TOPIC_BY_FORMAT: Record<string, string[]> = {
   teach_me: TEACH_ME_TOPICS,
   advice: ADVICE_TOPICS,
   interview: INTERVIEW_TOPICS,
+  help_me_decide: DECIDE_TOPICS,
 };
 
 // Default pool for formats without their own list

@@ -310,6 +310,7 @@ export function usePipeline() {
               const m = pingPongModeNameRef.current;
               const countdownLabel = m === 'debate' ? 'Next motion'
                 : m === 'advice' ? 'Next recommendation'
+                : m === 'help_me_decide' ? 'Next decision'
                 : 'Next finding';
               addMsg('system', `${countdownLabel} in ${textEvent.msgs_until_review} messages`);
             }
@@ -329,6 +330,7 @@ export function usePipeline() {
             if (statusEvent.event === 'threshold_reached') {
               const thresholdLabel = m === 'debate' ? 'Motion review'
                 : m === 'advice' ? 'Recommendation review'
+                : m === 'help_me_decide' ? 'Decision review'
                 : 'Finding review';
               addMsg('system', `⚡ ${thresholdLabel}`);
             } else if (statusEvent.event === 'conclusion_reached') {
@@ -340,12 +342,15 @@ export function usePipeline() {
                 addMsg('system', `✓ Motion ${num}/${total} carried (Score: ChatGPT ${gptScore} - Claude ${claudeScore})`);
               } else if (m === 'advice') {
                 addMsg('system', `✓ Recommendation ${num}/${total} agreed`);
+              } else if (m === 'help_me_decide') {
+                addMsg('system', `✓ Decision ${num}/${total} reached`);
               } else {
                 addMsg('system', `✓ Finding ${num}/${total} reached`);
               }
             } else if (statusEvent.event === 'conclusion_rejected') {
               const rejectedLabel = m === 'debate' ? 'Motion disputed — continuing debate'
                 : m === 'advice' ? 'Recommendation not agreed — continuing discussion'
+                : m === 'help_me_decide' ? 'Decision not reached — continuing discussion'
                 : 'Finding not reached — continuing research';
               addMsg('system', `✗ ${rejectedLabel}`);
             }
@@ -364,6 +369,8 @@ export function usePipeline() {
                 addMsg('system', `Debate complete — Final score: ChatGPT ${gptScore} - Claude ${claudeScore}!`);
               } else if (m === 'advice') {
                 addMsg('system', `Advice complete — ${mt} recommendations agreed!`);
+              } else if (m === 'help_me_decide') {
+                addMsg('system', `All done — ${mt} decisions reached!`);
               } else {
                 addMsg('system', `Research complete — ${mt} findings reached!`);
               }
@@ -490,7 +497,7 @@ export function usePipeline() {
       pingPongModeNameRef.current = (currentSettings.mode as string) || 'research';
 
       if (isPingPong && sid && !stoppedRef.current) {
-        const modeLabelMap: Record<string, string> = { debate: 'Debate', advice: 'Advising', conversation: 'Conversation', research: 'Research' };
+        const modeLabelMap: Record<string, string> = { debate: 'Debate', advice: 'Advising', conversation: 'Conversation', research: 'Research', help_me_decide: 'Deciding' };
         const modeLabel = modeLabelMap[currentSettings.mode as string] || 'Research';
         dlog('research', `Ping-pong mode (${currentSettings.mode}) detected — starting ping-pong loop`);
         setStatus(currentSettings.mode === 'conversation' ? 'Bots chatting...' : `${modeLabel} in progress...`);
