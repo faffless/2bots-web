@@ -79,7 +79,7 @@ export const VOICE_OPTIONS: Record<string, string> = {
 // Modes shown on landing page (dice button replaces Random)
 export const MODES_LANDING: Record<string, string> = {
   mix:             'Mix',
-  conversation:    'Free Conversation',
+  conversation:    'Conversation',
   debate:          'Debate',
   roleplay:        'Roleplay',
   bedtime_story:   'Storytime',
@@ -95,7 +95,7 @@ export const MODES_LANDING: Record<string, string> = {
 // Modes shown during conversation (includes Mix, no Random)
 export const MODES_CONVERSATION: Record<string, string> = {
   mix:             'Mix',
-  conversation:    'Free Conversation',
+  conversation:    'Conversation',
   debate:          'Debate',
   roleplay:        'Roleplay',
   bedtime_story:   'Storytime',
