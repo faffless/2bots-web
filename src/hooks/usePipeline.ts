@@ -479,6 +479,7 @@ export function usePipeline() {
       let startNextGenerator: string | null = null;
 
       const ctrl = freshAbort();
+      const myGeneration = generationRef.current;
 
       // Detect ping-pong mode for countdown handling
       const currentSettings = getSettings();
@@ -489,6 +490,9 @@ export function usePipeline() {
       // Stream buffered start — all content + TTS pre-generated on server
       // Loading screen stays up until first text event arrives
       await apiStartStream(personality, currentSettings, async (event) => {
+        // Discard if user interrupted (sent a message or stopped)
+        if (generationRef.current !== myGeneration) return;
+
         if (event.type === 'session' && event.session_id) {
           sessionRef.current = event.session_id;
           setSessionId(event.session_id);
