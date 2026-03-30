@@ -17,7 +17,7 @@ import StartupLoader from '@/components/StartupLoader';
 import {
   MODES_LANDING,
   MODES_CONVERSATION,
-  CONVERSATION_IDEAS,
+
   PERSONALITY_OPTIONS,
   QUIRK_OPTIONS,
   VOICE_OPTIONS,
@@ -32,16 +32,6 @@ export default function Home() {
   const [showGptSettings, setShowGptSettings] = useState(false);
   const [showClaudeSettings, setShowClaudeSettings] = useState(false);
   const [topicFocused, setTopicFocused] = useState(false);
-
-  // Rotating placeholder from conversation ideas
-  const [placeholderIdx, setPlaceholderIdx] = useState(0);
-  const placeholderTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  useEffect(() => {
-    placeholderTimerRef.current = setInterval(() => {
-      setPlaceholderIdx(prev => (prev + 1) % CONVERSATION_IDEAS.length);
-    }, 4000);
-    return () => { if (placeholderTimerRef.current) clearInterval(placeholderTimerRef.current); };
-  }, []);
 
   // Register service worker for PWA
   useEffect(() => {
@@ -310,7 +300,7 @@ export default function Home() {
                         type="text" value={typedText}
                         onChange={(e) => setTypedText(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSendClick()}
-                        placeholder={CONVERSATION_IDEAS[placeholderIdx]}
+                        placeholder="Say something..."
                         disabled={!pipeline.sessionId}
                         className="w-full bg-bot-bg border border-white/10 rounded px-3 py-2 pr-9 text-sm text-bot-text placeholder:text-bot-muted/40 outline-none focus:border-bot-user transition"
                       />
