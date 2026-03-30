@@ -79,7 +79,7 @@ export default function StartupLoader() {
           className="h-full rounded-full transition-all duration-300 ease-out"
           style={{
             width: `${percent}%`,
-            background: 'linear-gradient(90deg, #d97706, #10a37f)',
+            background: '#82ccdd',
           }}
         />
       </div>
