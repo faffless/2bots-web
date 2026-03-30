@@ -67,7 +67,7 @@ export function useSettings(
 ): SettingsState & SettingsActions {
   const [gptVoice, _setGptVoice] = useState('shimmer');
   const [claudeVoice, _setClaudeVoice] = useState('onyx');
-  const [interactionStyle, _setInteractionStyle] = useState('conversation');
+  const [interactionStyle, _setInteractionStyle] = useState('help_me_decide');
   const [topic, _setTopic] = useState('');
   const [gptResponseLength, _setGptResponseLength] = useState('avg_20');
   const [claudeResponseLength, _setClaudeResponseLength] = useState('avg_20');
