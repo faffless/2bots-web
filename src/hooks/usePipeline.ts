@@ -359,21 +359,36 @@ export function usePipeline() {
           } else if (event.type === 'done') {
             const doneEvent = event as Record<string, unknown>;
             nextWho = doneEvent.next_who as string || null;
-            // Stop when all milestones reached
+            // Stop when all milestones reached — show recap
             if (doneEvent.pingpong_complete) {
-              const m = pingPongModeNameRef.current;
+              const m = (doneEvent.mode as string) || pingPongModeNameRef.current;
               const mt = (doneEvent.milestone_target as number) || '?';
+              const conclusions = (doneEvent.conclusions as string[]) || [];
+
+              // Header
               if (m === 'debate') {
                 const gptScore = (doneEvent.debate_score_gpt as number) || 0;
                 const claudeScore = (doneEvent.debate_score_claude as number) || 0;
-                addMsg('system', `Debate complete — Final score: ChatGPT ${gptScore} - Claude ${claudeScore}!`);
+                addMsg('system', `Debate complete — Final score: ChatGPT ${gptScore} - Claude ${claudeScore}`);
               } else if (m === 'advice') {
-                addMsg('system', `Advice complete — ${mt} recommendations agreed!`);
+                addMsg('system', `Advice complete — ${mt} recommendations agreed`);
               } else if (m === 'help_me_decide') {
-                addMsg('system', `All done — ${mt} decisions reached!`);
+                addMsg('system', `All done — ${mt} decisions reached`);
               } else {
-                addMsg('system', `Research complete — ${mt} findings reached!`);
+                addMsg('system', `Research complete — ${mt} findings reached`);
               }
+
+              // Recap list
+              if (conclusions.length > 0) {
+                const milestoneWord = m === 'debate' ? 'Motion'
+                  : m === 'advice' ? 'Recommendation'
+                  : m === 'help_me_decide' ? 'Decision'
+                  : 'Finding';
+                conclusions.forEach((c, i) => {
+                  addMsg('system', `${milestoneWord} ${i + 1}: ${c}`);
+                });
+              }
+
               setStopped(true);
               stoppedRef.current = true;
             }
