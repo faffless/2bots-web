@@ -31,6 +31,7 @@ export default function Home() {
   const [typedText, setTypedText] = useState('');
   const [showGptSettings, setShowGptSettings] = useState(false);
   const [showClaudeSettings, setShowClaudeSettings] = useState(false);
+  const [topicFocused, setTopicFocused] = useState(false);
 
   // Rotating placeholder from conversation ideas
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
@@ -179,40 +180,52 @@ export default function Home() {
           <div className="flex flex-col flex-1 min-h-0 md:rounded-xl md:border md:border-white/5 overflow-hidden bg-bot-bg md:min-h-[600px]">
 
             {/* Header — single row: ChatGPT | status | Format about Topic | Claude */}
-            <div className="bg-bot-panel border-b border-white/5 shrink-0 px-3 py-2" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+            <div className="bg-bot-panel border-b border-white/5 shrink-0 px-3 py-2.5" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
               <div className="flex items-center justify-between gap-1.5">
-                <button
-                  onClick={() => pipeline.started && setShowGptSettings(!showGptSettings)}
-                  className={`text-bot-gpt font-normal text-sm tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
-                ><span className="hidden md:inline">⚙ ChatGPT</span><span className="md:hidden">⚙</span></button>
+                {!(pipeline.started && topicFocused) && (
+                  <button
+                    onClick={() => pipeline.started && setShowGptSettings(!showGptSettings)}
+                    className={`text-bot-gpt font-normal text-sm tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
+                  ><span className="hidden md:inline">⚙ ChatGPT</span><span className="md:hidden">⚙</span></button>
+                )}
 
-                {pipeline.started && !isStartingUp && (
+                {pipeline.started && !isStartingUp && !topicFocused && (
                   <span className="text-[11px] text-bot-muted truncate max-w-[90px] shrink-0">{pipeline.status}</span>
                 )}
 
-                <div className={`flex items-center gap-1.5 ${pipeline.started ? 'shrink-0' : 'flex-1 min-w-0'}`}>
-                  <button onClick={randomizeBoth} title="Randomize format & topic"
-                    className="text-sm text-bot-muted hover:text-bot-text transition px-0.5 shrink-0">🎲</button>
-                  <select value={settings.interactionStyle} onChange={(e) => settings.setInteractionStyle(e.target.value)}
-                    className={`bg-bot-bg border rounded px-1.5 py-1 text-bot-text text-xs outline-none shrink-0 transition-all duration-300 ${
-                      settings.formatSettingStatus === 'queued'
-                        ? 'border-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]'
-                        : settings.formatSettingStatus === 'applied'
-                          ? 'border-green-400 shadow-[0_0_6px_rgba(74,222,128,0.4)]'
-                          : 'border-white/10'
-                    }`}>
-                    {Object.entries(pipeline.started ? MODES_CONVERSATION : MODES_LANDING).map(([k, v]) => (
-                      <option key={k} value={k}>{v}</option>
-                    ))}
-                  </select>
-                  <span className="text-[11px] text-bot-muted shrink-0">on</span>
+                <div className={`flex items-center gap-1.5 transition-all duration-300 ${
+                  pipeline.started && topicFocused ? 'flex-1 min-w-0' : pipeline.started ? 'shrink-0' : 'flex-1 min-w-0'
+                }`}>
+                  {!(pipeline.started && topicFocused) && (
+                    <button onClick={randomizeBoth} title="Randomize format & topic"
+                      className="text-sm text-bot-muted hover:text-bot-text transition px-0.5 shrink-0">🎲</button>
+                  )}
+                  {!(pipeline.started && topicFocused) && (
+                    <select value={settings.interactionStyle} onChange={(e) => settings.setInteractionStyle(e.target.value)}
+                      className={`bg-bot-bg border rounded px-1.5 py-1 text-bot-text text-xs outline-none shrink-0 transition-all duration-300 ${
+                        settings.formatSettingStatus === 'queued'
+                          ? 'border-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]'
+                          : settings.formatSettingStatus === 'applied'
+                            ? 'border-green-400 shadow-[0_0_6px_rgba(74,222,128,0.4)]'
+                            : 'border-white/10'
+                      }`}>
+                      {Object.entries(pipeline.started ? MODES_CONVERSATION : MODES_LANDING).map(([k, v]) => (
+                        <option key={k} value={k}>{v}</option>
+                      ))}
+                    </select>
+                  )}
+                  {!(pipeline.started && topicFocused) && (
+                    <span className="text-[11px] text-bot-muted shrink-0">on</span>
+                  )}
                   <input
                     type="text"
                     value={settings.topic}
                     onChange={(e) => settings.setTopic(e.target.value)}
-                    placeholder="Random"
-                    className={`bg-bot-bg border rounded px-1.5 py-1 text-bot-text text-xs outline-none placeholder:text-bot-muted/50 transition-all duration-300 ${
-                      pipeline.started ? 'w-24' : 'flex-1 min-w-0'
+                    onFocus={() => setTopicFocused(true)}
+                    onBlur={() => setTopicFocused(false)}
+                    placeholder={topicFocused ? "Type a new topic..." : "Random"}
+                    className={`bg-bot-bg border rounded px-2 py-1.5 text-bot-text text-sm outline-none placeholder:text-bot-muted/50 transition-all duration-300 ${
+                      pipeline.started && topicFocused ? 'flex-1 min-w-0' : pipeline.started ? 'w-24' : 'flex-1 min-w-0'
                     } ${
                       settings.topicSettingStatus === 'queued'
                         ? 'border-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]'
@@ -223,10 +236,12 @@ export default function Home() {
                   />
                 </div>
 
-                <button
-                  onClick={() => pipeline.started && setShowClaudeSettings(!showClaudeSettings)}
-                  className={`text-bot-claude font-normal text-sm tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
-                ><span className="hidden md:inline">Claude ⚙</span><span className="md:hidden">⚙</span></button>
+                {!(pipeline.started && topicFocused) && (
+                  <button
+                    onClick={() => pipeline.started && setShowClaudeSettings(!showClaudeSettings)}
+                    className={`text-bot-claude font-normal text-sm tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
+                  ><span className="hidden md:inline">Claude ⚙</span><span className="md:hidden">⚙</span></button>
+                )}
               </div>
             </div>
 
