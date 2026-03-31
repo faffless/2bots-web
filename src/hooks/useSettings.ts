@@ -79,8 +79,13 @@ export function useSettings(
   const [claudeQuirkStrength, _setClaudeQuirkStrength] = useState(1);
   const [gptTtsSpeed, _setGptTtsSpeed] = useState(1.0);
   const [claudeTtsSpeed, _setClaudeTtsSpeed] = useState(1.0);
-  const [gptWordLimit, _setGptWordLimit] = useState<number | null>(null);
-  const [claudeWordLimit, _setClaudeWordLimit] = useState<number | null>(null);
+  const WORD_LIMIT_DEFAULTS: Record<string, number> = {
+    research: 80,
+    conversation: 50,
+  };
+  const DEFAULT_WORD_LIMIT = 30;
+  const [gptWordLimit, _setGptWordLimit] = useState<number | null>(50); // conversation default
+  const [claudeWordLimit, _setClaudeWordLimit] = useState<number | null>(50);
 
   const settingsInitRef = useRef(false);
   const settingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -106,7 +111,13 @@ export function useSettings(
   // Wrap setters to tag which bot changed
   const setGptVoice = (v: string) => { gptChangedRef.current = true; _setGptVoice(v); };
   const setClaudeVoice = (v: string) => { claudeChangedRef.current = true; _setClaudeVoice(v); };
-  const setInteractionStyle = (v: string) => { gptChangedRef.current = true; claudeChangedRef.current = true; formatChangedRef.current = true; _setInteractionStyle(v); };
+  const setInteractionStyle = (v: string) => {
+    gptChangedRef.current = true; claudeChangedRef.current = true; formatChangedRef.current = true;
+    _setInteractionStyle(v);
+    const wl = WORD_LIMIT_DEFAULTS[v] ?? DEFAULT_WORD_LIMIT;
+    _setGptWordLimit(wl);
+    _setClaudeWordLimit(wl);
+  };
   const setTopic = (v: string) => { gptChangedRef.current = true; claudeChangedRef.current = true; topicChangedRef.current = true; _setTopic(v); };
   const setGptResponseLength = (v: string) => { gptChangedRef.current = true; _setGptResponseLength(v); };
   const setClaudeResponseLength = (v: string) => { claudeChangedRef.current = true; _setClaudeResponseLength(v); };
