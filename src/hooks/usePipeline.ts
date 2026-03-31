@@ -206,6 +206,8 @@ export function usePipeline() {
         } else if (event.type === 'motivations') {
           setGptMotivation(event.gpt || '');
           setClaudeMotivation(event.claude || '');
+        } else if (event.type === 'mix_format') {
+          addMsg('system', `Mix picked: ${(event as Record<string, unknown>).format}`);
         } else if (event.type === 'done') {
           nextGen = (event as Record<string, unknown>).next_generator as string || null;
         }
@@ -498,6 +500,8 @@ export function usePipeline() {
           setSessionId(event.session_id);
           if (event.gpt_personality) gptPersonalityResult = event.gpt_personality;
           if (event.claude_personality) claudePersonalityResult = event.claude_personality;
+        } else if (event.type === 'mix_format') {
+          addMsg('system', `Mix picked: ${(event as Record<string, unknown>).format}`);
         } else if (event.type === 'text') {
           // Dismiss loading screen on first text event — content is ready to play
           if (!loadingDismissed) {
