@@ -6,6 +6,7 @@ import {
   VOICE_OPTIONS,
   QUIRK_OPTIONS,
   STRENGTH_LABELS,
+  RANDOM_PERSONALITIES,
 } from '@/lib/constants';
 
 interface BotSettingsPanelProps {
@@ -79,13 +80,24 @@ export default function BotSettingsPanel({
             boxShadow: `0 0 8px ${cfg.accentHex}40`,
           } : { borderColor: 'rgba(255,255,255,0.1)' }}
         />
-        {customDirty && (
+        <div className="absolute right-1.5 top-1.5 flex gap-1">
+          {customDirty && (
+            <button
+              onClick={confirmCustom}
+              className="text-[11px] text-green-400 hover:text-green-300 transition"
+              title="Confirm (Enter)"
+            >✓</button>
+          )}
           <button
-            onClick={confirmCustom}
-            className="absolute right-1.5 top-1.5 text-[11px] text-green-400 hover:text-green-300 transition"
-            title="Confirm (Enter)"
-          >✓</button>
-        )}
+            onClick={() => {
+              const pick = RANDOM_PERSONALITIES[Math.floor(Math.random() * RANDOM_PERSONALITIES.length)];
+              setLocalCustom(pick);
+              setCustom(pick);
+            }}
+            className="text-[11px] text-bot-muted hover:text-bot-text transition"
+            title="Random personality"
+          >🎲</button>
+        </div>
       </div>
 
       {/* 3. Traits dropdown */}
