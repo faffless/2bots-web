@@ -17,8 +17,6 @@ export interface SettingsState {
   claudeQuirks: string[];
   gptCustom: string;
   claudeCustom: string;
-  gptCustomTrait: string;
-  claudeCustomTrait: string;
   gptPersonalityStrength: number;
   claudePersonalityStrength: number;
   gptQuirkStrength: number;
@@ -42,8 +40,6 @@ export interface SettingsActions {
   setClaudeQuirks: React.Dispatch<React.SetStateAction<string[]>>;
   setGptCustom: (v: string) => void;
   setClaudeCustom: (v: string) => void;
-  setGptCustomTrait: (v: string) => void;
-  setClaudeCustomTrait: (v: string) => void;
   setGptPersonalityStrength: (v: number) => void;
   setClaudePersonalityStrength: (v: number) => void;
   setGptQuirkStrength: (v: number) => void;
@@ -77,8 +73,6 @@ export function useSettings(
   const [claudeQuirks, _setClaudeQuirks] = useState<string[]>([]);
   const [gptCustom, _setGptCustom] = useState('');
   const [claudeCustom, _setClaudeCustom] = useState('');
-  const [gptCustomTrait, _setGptCustomTrait] = useState('');
-  const [claudeCustomTrait, _setClaudeCustomTrait] = useState('');
   const [gptPersonalityStrength, _setGptPersonalityStrength] = useState(1);
   const [claudePersonalityStrength, _setClaudePersonalityStrength] = useState(1);
   const [gptQuirkStrength, _setGptQuirkStrength] = useState(1);
@@ -122,8 +116,6 @@ export function useSettings(
   const setClaudeQuirks: React.Dispatch<React.SetStateAction<string[]>> = (v) => { claudeChangedRef.current = true; _setClaudeQuirks(v); };
   const setGptCustom = (v: string) => { gptChangedRef.current = true; _setGptCustom(v); };
   const setClaudeCustom = (v: string) => { claudeChangedRef.current = true; _setClaudeCustom(v); };
-  const setGptCustomTrait = (v: string) => { gptChangedRef.current = true; _setGptCustomTrait(v); };
-  const setClaudeCustomTrait = (v: string) => { claudeChangedRef.current = true; _setClaudeCustomTrait(v); };
   const setGptPersonalityStrength = (v: number) => { gptChangedRef.current = true; _setGptPersonalityStrength(v); };
   const setClaudePersonalityStrength = (v: number) => { claudeChangedRef.current = true; _setClaudePersonalityStrength(v); };
   const setGptQuirkStrength = (v: number) => { gptChangedRef.current = true; _setGptQuirkStrength(v); };
@@ -146,8 +138,6 @@ export function useSettings(
     claude_quirks: claudeQuirks,
     gpt_custom: gptCustom,
     claude_custom: claudeCustom,
-    gpt_custom_trait: gptCustomTrait,
-    claude_custom_trait: claudeCustomTrait,
     gpt_personality_strength: gptPersonalityStrength,
     claude_personality_strength: claudePersonalityStrength,
     gpt_quirk_strength: gptQuirkStrength,
@@ -230,7 +220,7 @@ export function useSettings(
     }, 300);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gptVoice, claudeVoice, interactionStyle, topic, gptResponseLength, claudeResponseLength,
-      gptPersonality, claudePersonality, gptQuirks, claudeQuirks, gptCustom, claudeCustom, gptCustomTrait, claudeCustomTrait,
+      gptPersonality, claudePersonality, gptQuirks, claudeQuirks, gptCustom, claudeCustom,
       gptPersonalityStrength, claudePersonalityStrength, gptQuirkStrength, claudeQuirkStrength, gptTtsSpeed, claudeTtsSpeed,
       gptWordLimit, claudeWordLimit]);
 
@@ -256,8 +246,6 @@ export function useSettings(
     claudeQuirks, setClaudeQuirks,
     gptCustom, setGptCustom,
     claudeCustom, setClaudeCustom,
-    gptCustomTrait, setGptCustomTrait,
-    claudeCustomTrait, setClaudeCustomTrait,
     gptPersonalityStrength, setGptPersonalityStrength,
     claudePersonalityStrength, setClaudePersonalityStrength,
     gptQuirkStrength, setGptQuirkStrength,

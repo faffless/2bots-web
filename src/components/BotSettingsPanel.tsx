@@ -21,8 +21,6 @@ interface BotSettingsPanelProps {
   toggleQuirk: (bot: Bot, quirk: string) => void;
   custom: string;
   setCustom: (v: string) => void;
-  customTrait: string;
-  setCustomTrait: (v: string) => void;
   wordLimit: number | null;
   setWordLimit: (v: number | null) => void;
   settingStatus?: 'queued' | 'applied' | null;
@@ -32,7 +30,7 @@ interface BotSettingsPanelProps {
 export default function BotSettingsPanel({
   bot, personality, setPersonality, personalityStrength, setPersonalityStrength,
   voice, setVoice, ttsSpeed, setTtsSpeed, quirks, toggleQuirk,
-  custom, setCustom, customTrait, setCustomTrait, wordLimit, setWordLimit,
+  custom, setCustom, wordLimit, setWordLimit,
   settingStatus, onRandomize,
 }: BotSettingsPanelProps) {
   const cfg = BOT_CONFIG[bot];
@@ -60,8 +58,8 @@ export default function BotSettingsPanel({
         value={custom}
         onChange={(e) => setCustom(e.target.value)}
         placeholder={bot === 'gpt'
-          ? "e.g. speaks like a 1920s gangster"
-          : "e.g. talks like a nature documentary narrator"}
+          ? "e.g. speaks like a 1920s gangster, obsessed with cats"
+          : "e.g. talks like a nature documentary narrator, afraid of the number 7"}
         className="w-full bg-bot-bg border rounded px-2 py-1.5 text-bot-text text-[10px] outline-none resize-none h-12 placeholder:text-bot-muted/40 transition"
         style={custom.trim() ? {
           borderColor: cfg.accentHex,
@@ -99,21 +97,7 @@ export default function BotSettingsPanel({
         )}
       </div>
 
-      {/* 4. Custom trait box */}
-      <textarea
-        value={customTrait}
-        onChange={(e) => setCustomTrait(e.target.value)}
-        placeholder={bot === 'gpt'
-          ? "e.g. obsessed with Rachmaninoff"
-          : "e.g. afraid of the number 7"}
-        className="w-full bg-bot-bg border rounded px-2 py-1.5 text-bot-text text-[10px] outline-none resize-none h-12 placeholder:text-bot-muted/40 transition"
-        style={customTrait.trim() ? {
-          borderColor: cfg.accentHex,
-          boxShadow: `0 0 8px ${cfg.accentHex}40`,
-        } : { borderColor: 'rgba(255,255,255,0.1)' }}
-      />
-
-      {/* 5. Character strength slider */}
+      {/* 4. Character strength slider */}
       <div>
         <div className="flex items-center justify-between mb-0.5">
           <span className="text-[9px] text-bot-muted">Character strength</span>

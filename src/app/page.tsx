@@ -154,8 +154,6 @@ export default function Home() {
                 toggleQuirk={settings.toggleQuirk}
                 custom={settings.gptCustom}
                 setCustom={settings.setGptCustom}
-                customTrait={settings.gptCustomTrait}
-                setCustomTrait={settings.setGptCustomTrait}
                 wordLimit={settings.gptWordLimit}
                 setWordLimit={settings.setGptWordLimit}
                 settingStatus={settings.gptSettingStatus}
@@ -382,8 +380,6 @@ export default function Home() {
                 toggleQuirk={settings.toggleQuirk}
                 custom={settings.claudeCustom}
                 setCustom={settings.setClaudeCustom}
-                customTrait={settings.claudeCustomTrait}
-                setCustomTrait={settings.setClaudeCustomTrait}
                 wordLimit={settings.claudeWordLimit}
                 setWordLimit={settings.setClaudeWordLimit}
                 settingStatus={settings.claudeSettingStatus}
