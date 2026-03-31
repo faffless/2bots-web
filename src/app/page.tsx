@@ -169,17 +169,17 @@ export default function Home() {
         <div className="w-full max-w-[620px] flex flex-col h-full md:my-4 md:max-h-[calc(100vh-32px)]">
           <div className="flex flex-col flex-1 min-h-0 md:rounded-xl md:border md:border-white/5 overflow-hidden bg-bot-bg md:min-h-[600px]">
 
-            {/* Header — cog | Format on Topic | cog */}
+            {/* Header — cog | 🎲 Format on Topic | cog */}
             <div className="bg-bot-panel border-b border-white/5 shrink-0 px-3 py-2.5" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-              <div className="flex items-center justify-between gap-1.5">
+              <div className="flex items-center gap-1.5">
                 {!(pipeline.started && topicFocused) && (
                   <button
                     onClick={() => pipeline.started && setShowGptSettings(!showGptSettings)}
-                    className={`text-bot-gpt text-sm transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
+                    className={`text-bot-gpt text-sm transition-opacity hover:opacity-70 w-6 text-center shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
                   >⚙</button>
                 )}
 
-                <div className={`flex items-center gap-1.5 flex-1 min-w-0`}>
+                <div className="flex items-center gap-1.5 flex-1 min-w-0">
                   {!(pipeline.started && topicFocused) && (
                     <button onClick={randomizeBoth} title="Randomize format & topic"
                       className="text-sm text-bot-muted hover:text-bot-text transition px-0.5 shrink-0">🎲</button>
@@ -221,7 +221,7 @@ export default function Home() {
                 {!(pipeline.started && topicFocused) && (
                   <button
                     onClick={() => pipeline.started && setShowClaudeSettings(!showClaudeSettings)}
-                    className={`text-bot-claude text-sm transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
+                    className={`text-bot-claude text-sm transition-opacity hover:opacity-70 w-6 text-center shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
                   >⚙</button>
                 )}
               </div>
