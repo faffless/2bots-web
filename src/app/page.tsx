@@ -186,7 +186,7 @@ export default function Home() {
                   )}
                   {!(pipeline.started && topicFocused) && (
                     <select value={settings.interactionStyle} onChange={(e) => settings.setInteractionStyle(e.target.value)}
-                      className={`bg-bot-bg border rounded px-1.5 py-1 text-bot-text text-xs outline-none shrink-0 transition-all duration-300 ${
+                      className={`bg-bot-bg border rounded px-1.5 py-1.5 text-bot-text text-sm outline-none shrink-0 transition-all duration-300 ${
                         settings.formatSettingStatus === 'queued'
                           ? 'border-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]'
                           : settings.formatSettingStatus === 'applied'
