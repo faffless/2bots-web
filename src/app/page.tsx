@@ -182,7 +182,7 @@ export default function Home() {
                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                   {!(pipeline.started && topicFocused) && (
                     <button onClick={randomizeBoth} title="Randomize format & topic"
-                      className="text-sm text-bot-muted hover:text-bot-text transition px-0.5 shrink-0">⟳</button>
+                      className="text-sm text-bot-muted hover:text-bot-text transition px-0.5 shrink-0">🎲</button>
                   )}
                   {!(pipeline.started && topicFocused) && (
                     <select value={settings.interactionStyle} onChange={(e) => settings.setInteractionStyle(e.target.value)}
