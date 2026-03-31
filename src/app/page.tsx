@@ -169,23 +169,17 @@ export default function Home() {
         <div className="w-full max-w-[620px] flex flex-col h-full md:my-4 md:max-h-[calc(100vh-32px)]">
           <div className="flex flex-col flex-1 min-h-0 md:rounded-xl md:border md:border-white/5 overflow-hidden bg-bot-bg md:min-h-[600px]">
 
-            {/* Header — single row: ChatGPT | status | Format about Topic | Claude */}
+            {/* Header — cog | Format on Topic | cog */}
             <div className="bg-bot-panel border-b border-white/5 shrink-0 px-3 py-2.5" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
               <div className="flex items-center justify-between gap-1.5">
                 {!(pipeline.started && topicFocused) && (
                   <button
                     onClick={() => pipeline.started && setShowGptSettings(!showGptSettings)}
-                    className={`text-bot-gpt font-normal text-sm tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
-                  ><span className="hidden md:inline">⚙ ChatGPT</span><span className="md:hidden">⚙</span></button>
+                    className={`text-bot-gpt text-sm transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
+                  >⚙</button>
                 )}
 
-                {pipeline.started && !isStartingUp && !topicFocused && (
-                  <span className="text-[11px] text-bot-muted truncate max-w-[90px] shrink-0">{pipeline.status}</span>
-                )}
-
-                <div className={`flex items-center gap-1.5 transition-all duration-300 ${
-                  pipeline.started && topicFocused ? 'flex-1 min-w-0' : pipeline.started ? 'shrink-0' : 'flex-1 min-w-0'
-                }`}>
+                <div className={`flex items-center gap-1.5 flex-1 min-w-0`}>
                   {!(pipeline.started && topicFocused) && (
                     <button onClick={randomizeBoth} title="Randomize format & topic"
                       className="text-sm text-bot-muted hover:text-bot-text transition px-0.5 shrink-0">🎲</button>
@@ -214,9 +208,7 @@ export default function Home() {
                     onFocus={() => setTopicFocused(true)}
                     onBlur={() => setTopicFocused(false)}
                     placeholder={topicFocused ? "Type a new topic..." : "Random"}
-                    className={`bg-bot-bg border rounded px-2 py-1.5 text-bot-text text-sm outline-none placeholder:text-bot-muted/50 transition-all duration-300 ${
-                      pipeline.started && topicFocused ? 'flex-1 min-w-0' : pipeline.started ? 'w-24' : 'flex-1 min-w-0'
-                    } ${
+                    className={`bg-bot-bg border rounded px-2 py-1.5 text-bot-text text-sm outline-none placeholder:text-bot-muted/50 flex-1 min-w-0 ${
                       settings.topicSettingStatus === 'queued'
                         ? 'border-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]'
                         : settings.topicSettingStatus === 'applied'
@@ -229,8 +221,8 @@ export default function Home() {
                 {!(pipeline.started && topicFocused) && (
                   <button
                     onClick={() => pipeline.started && setShowClaudeSettings(!showClaudeSettings)}
-                    className={`text-bot-claude font-normal text-sm tracking-wide transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
-                  ><span className="hidden md:inline">Claude ⚙</span><span className="md:hidden">⚙</span></button>
+                    className={`text-bot-claude text-sm transition-opacity hover:opacity-70 shrink-0 ${pipeline.started ? 'opacity-100 cursor-pointer' : 'opacity-0 cursor-default'}`}
+                  >⚙</button>
                 )}
               </div>
             </div>
@@ -274,6 +266,18 @@ export default function Home() {
                 .map((msg) => (
                   <ChatBubble key={msg.id} msg={msg} />
                 ))}
+
+              {/* Typing indicator — WhatsApp style */}
+              {pipeline.started && !isStartingUp && pipeline.status && !pipeline.stopped && (
+                <div className="self-start text-[13px] text-bot-muted italic py-1 px-1 animate-fade-in flex items-center gap-1.5">
+                  <span className="flex gap-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-bot-muted/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-bot-muted/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-bot-muted/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </span>
+                  {pipeline.status}
+                </div>
+              )}
               <div ref={pipeline.chatEndRef} />
             </div>
 
