@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
   type Bot,
   BOT_CONFIG,
@@ -34,6 +35,15 @@ export default function BotSettingsPanel({
   settingStatus, onRandomize,
 }: BotSettingsPanelProps) {
   const cfg = BOT_CONFIG[bot];
+  const [localCustom, setLocalCustom] = useState(custom);
+  const customDirty = localCustom !== custom;
+
+  // Sync if parent changes (e.g. randomize)
+  useEffect(() => { setLocalCustom(custom); }, [custom]);
+
+  const confirmCustom = () => {
+    if (localCustom !== custom) setCustom(localCustom);
+  };
 
   return (
     <div className="flex flex-col gap-2 pt-2 lg:pt-12 w-full lg:w-52 shrink-0 animate-fade-in">
@@ -54,18 +64,29 @@ export default function BotSettingsPanel({
       </select>
 
       {/* 2. Custom personality box */}
-      <textarea
-        value={custom}
-        onChange={(e) => setCustom(e.target.value)}
-        placeholder={bot === 'gpt'
-          ? "e.g. speaks like a 1920s gangster, obsessed with cats"
-          : "e.g. talks like a nature documentary narrator, afraid of the number 7"}
-        className="w-full bg-bot-bg border rounded px-2 py-1.5 text-bot-text text-[10px] outline-none resize-none h-12 placeholder:text-bot-muted/40 transition"
-        style={custom.trim() ? {
-          borderColor: cfg.accentHex,
-          boxShadow: `0 0 8px ${cfg.accentHex}40`,
-        } : { borderColor: 'rgba(255,255,255,0.1)' }}
-      />
+      <div className="relative">
+        <textarea
+          value={localCustom}
+          onChange={(e) => setLocalCustom(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); confirmCustom(); } }}
+          onBlur={confirmCustom}
+          placeholder={bot === 'gpt'
+            ? "e.g. speaks like a 1920s gangster, obsessed with cats"
+            : "e.g. talks like a nature documentary narrator, afraid of the number 7"}
+          className="w-full bg-bot-bg border rounded px-2 py-1.5 pr-7 text-bot-text text-[10px] outline-none resize-none h-12 placeholder:text-bot-muted/40 transition"
+          style={localCustom.trim() ? {
+            borderColor: cfg.accentHex,
+            boxShadow: `0 0 8px ${cfg.accentHex}40`,
+          } : { borderColor: 'rgba(255,255,255,0.1)' }}
+        />
+        {customDirty && (
+          <button
+            onClick={confirmCustom}
+            className="absolute right-1.5 top-1.5 text-[11px] text-green-400 hover:text-green-300 transition"
+            title="Confirm (Enter)"
+          >✓</button>
+        )}
+      </div>
 
       {/* 3. Traits dropdown */}
       <div>
