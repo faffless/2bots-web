@@ -207,6 +207,7 @@ export default function Home() {
                     onChange={(e) => settings.setTopic(e.target.value)}
                     onFocus={() => setTopicFocused(true)}
                     onBlur={() => setTopicFocused(false)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !pipeline.started) handleStartClick(); }}
                     placeholder={topicFocused ? "Type a new topic..." : "Random"}
                     className={`bg-bot-bg border rounded px-2 py-1.5 text-bot-text text-sm outline-none placeholder:text-bot-muted/50 flex-1 min-w-0 ${
                       settings.topicSettingStatus === 'queued'
