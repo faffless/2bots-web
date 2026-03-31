@@ -89,6 +89,7 @@ export default function BotSettingsPanel({
             >✓</button>
           )}
           <button
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
               const pick = RANDOM_PERSONALITIES[Math.floor(Math.random() * RANDOM_PERSONALITIES.length)];
               setLocalCustom(pick);
